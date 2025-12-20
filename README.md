@@ -14,3 +14,4 @@ Each puzzle should contain the following:
  - a UI to play the game on a web page as a human
  - an evaluate.py script to run a solver (such as the sample brute force solver) over multiple levels with various options
 
+We include a standard prompt in prompt.txt that exhorts an agent to solve as many levels as they can in a puzzle. This is general and does not give any domain specific hints.
