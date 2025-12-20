@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bricolage Board Player</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
+
+      :root {
+        --ink: #1f1c16;
+        --muted: #5a5448;
+        --paper: #f6ecd6;
+        --panel: #fff4dd;
+        --accent: #d24838;
+        --accent-dark: #892f24;
+        --board-bg: #fdf7ea;
+        --shadow: rgba(15, 12, 8, 0.18);
+        --cell-size: 52px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+        background:
+          radial-gradient(1000px 600px at 10% 10%, #fff8e9 0%, #f7edd6 50%, #eadfc6 100%),
+          linear-gradient(120deg, rgba(0, 0, 0, 0.03) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0.03) 75%, transparent 75%, transparent);
+        background-size: auto, 48px 48px;
+        min-height: 100vh;
+      }
+
+      .app {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 24px 48px;
+        display: grid;
+        grid-template-columns: minmax(260px, 360px) 1fr;
+        gap: 24px;
+      }
+
+      header {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+      }
+
+      header h1 {
+        font-family: "Fraunces", "Georgia", serif;
+        font-size: clamp(32px, 4vw, 46px);
+        margin: 0;
+      }
+
+      header p {
+        margin: 0;
+        max-width: 520px;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 2px solid rgba(0, 0, 0, 0.08);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 14px 30px var(--shadow);
+        display: grid;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .panel::before,
+      .panel::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.25;
+        z-index: 0;
+      }
+
+      .panel::before {
+        width: 180px;
+        height: 180px;
+        right: -60px;
+        top: -40px;
+        background: #f5c36c;
+      }
+
+      .panel::after {
+        width: 140px;
+        height: 140px;
+        left: -50px;
+        bottom: -50px;
+        background: #e48f7a;
+      }
+
+      .panel > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        padding: 12px;
+        font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+        font-size: 14px;
+        resize: vertical;
+        background: #fff9ef;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 6px 0 var(--accent-dark);
+        transition: transform 0.12s ease;
+      }
+
+      button.secondary {
+        background: #2f6f86;
+        box-shadow: 0 6px 0 #1f495a;
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--ink);
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        box-shadow: none;
+      }
+
+      button:active {
+        transform: translateY(3px);
+        box-shadow: 0 3px 0 var(--accent-dark);
+      }
+
+      button.secondary:active {
+        box-shadow: 0 3px 0 #1f495a;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stat {
+        background: rgba(255, 255, 255, 0.65);
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: center;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .stat span {
+        display: block;
+      }
+
+      .stat .label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat .value {
+        font-size: 22px;
+        font-weight: 600;
+      }
+
+      .message {
+        min-height: 24px;
+        font-weight: 600;
+      }
+
+      .message.error {
+        color: #b6372c;
+      }
+
+      .message.success {
+        color: #20603a;
+      }
+
+      .board-area {
+        background: var(--board-bg);
+        border-radius: 20px;
+        border: 2px solid rgba(0, 0, 0, 0.08);
+        padding: 18px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(var(--cols), var(--cell-size));
+        grid-template-rows: repeat(var(--rows), var(--cell-size));
+        gap: 6px;
+        align-self: center;
+        padding: 12px;
+        background:
+          radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7), transparent 60%),
+          linear-gradient(135deg, rgba(0, 0, 0, 0.06), transparent 45%);
+        border-radius: 18px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cell {
+        border-radius: 12px;
+        background: var(--cell-color);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+          inset 0 -6px 12px rgba(0, 0, 0, 0.15),
+          0 6px 0 rgba(0, 0, 0, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease, opacity 0.2s ease;
+      }
+
+      .cell.spawn {
+        animation: pop 0.25s ease both;
+      }
+
+      .cell.empty {
+        background: rgba(0, 0, 0, 0.05);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+        cursor: default;
+      }
+
+      .cell.hover {
+        outline: 2px dashed rgba(0, 0, 0, 0.35);
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+      }
+
+      .cell.clearing {
+        opacity: 0;
+        transform: scale(0.85);
+      }
+
+      .helper {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .helper strong {
+        color: var(--ink);
+      }
+
+      .drop {
+        border: 2px dashed rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .drop.dragover {
+        border-color: var(--accent);
+        color: var(--ink);
+        background: rgba(210, 72, 56, 0.08);
+      }
+
+      .level-dialog {
+        border: 2px solid rgba(0, 0, 0, 0.12);
+        border-radius: 18px;
+        padding: 0;
+        background: #fff7e6;
+        box-shadow: 0 22px 40px rgba(0, 0, 0, 0.25);
+        width: min(620px, 92vw);
+      }
+
+      .level-dialog::backdrop {
+        background: rgba(20, 16, 10, 0.45);
+        backdrop-filter: blur(3px);
+      }
+
+      .dialog-inner {
+        display: grid;
+        gap: 12px;
+        padding: 20px;
+      }
+
+      .dialog-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .dialog-header h2 {
+        font-family: "Fraunces", "Georgia", serif;
+        font-size: 24px;
+        margin: 0;
+      }
+
+      .level-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+        max-height: 320px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .level-btn {
+        background: #2f6f86;
+        box-shadow: 0 5px 0 #1f495a;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      .level-btn:active {
+        box-shadow: 0 2px 0 #1f495a;
+      }
+
+      @keyframes pop {
+        from {
+          transform: translateY(10px) scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .board {
+          justify-self: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <div>
+          <h1>Bricolage Board Player</h1>
+          <p>Paste a level string like <strong>x=8&amp;y=5&amp;board=...</strong> and play it right in the browser.</p>
+        </div>
+        <div class="helper">
+          <span>Groups must be <strong>3+</strong> blocks.</span>
+          <span>Clear the board to win.</span>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div>
+          <label for="levelInput">Level string</label>
+          <textarea id="levelInput" spellcheck="false"></textarea>
+        </div>
+        <div class="row">
+          <button id="loadBtn">Load Level</button>
+          <button id="resetBtn" class="secondary">Reset Board</button>
+          <button id="sampleBtn" class="ghost">Use Sample</button>
+          <button id="browseBtn" class="ghost">Browse 1-20</button>
+        </div>
+        <div class="row">
+          <input id="fileInput" type="file" accept=".txt,.lvl,.level" />
+        </div>
+        <div id="dropZone" class="drop">Drop a level file here</div>
+        <div class="stats">
+          <div class="stat">
+            <span class="label">Moves</span>
+            <span class="value" id="moves">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Blocks Left</span>
+            <span class="value" id="remaining">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Group Size</span>
+            <span class="value" id="hoverSize">-</span>
+          </div>
+        </div>
+        <div id="message" class="message" aria-live="polite"></div>
+      </section>
+
+      <section class="board-area">
+        <div id="board" class="board"></div>
+      </section>
+    </main>
+
+    <dialog id="levelDialog" class="level-dialog">
+      <div class="dialog-inner">
+        <div class="dialog-header">
+          <h2>Starter Levels</h2>
+          <button id="closeDialogBtn" class="ghost" type="button">Close</button>
+        </div>
+        <p>Pick one of the first 20 levels from the dump.</p>
+        <div id="levelList" class="level-list"></div>
+      </div>
+    </dialog>
+
+    <script>
+      const sampleLevel = "x=8&y=5&board=.bbccbb..b.b.bb......c.......c..........";
+      const curatedLevels = [
+        { id: 1, data: "x=8&y=5&board=.aabbaa..a.a.aa......b.......b.........." },
+        { id: 2, data: "x=6&y=8&board=.abba..acaa...ccc...bac.....b.....a.....a......." },
+        { id: 3, data: "x=11&y=6&board=.aaaabbcaa..bbb.b.ccc..b.b...b..........a..........a.............." },
+        { id: 4, data: "x=11&y=7&board=.bbbcccbac....bcbcacc....a.bbaca....a..........a..........a.................." },
+        { id: 5, data: "x=11&y=7&board=.aaabcabba....accaccc....b.bacbc....b.ba..a..........a..........a............" },
+        { id: 6, data: "x=10&y=7&board=.baabccca...abaabbb...caab.ab...c.cb......c.ab......b.a..............." },
+        { id: 7, data: "x=13&y=5&board=.bbbabcaccaa...cabbccacba...ccaabbb.b....a....ba................." },
+        { id: 8, data: "x=12&y=8&board=.aabbbdabcd..a..dddabcd.....dcba.ad......cc..bd.......c..ac..........ac..........a.............." },
+        { id: 9, data: "x=14&y=8&board=.cccacccabbba...cba.a.abcba...bac.a.c.aca...b.....c.a.b...........a.b...........a.b.............a..............." },
+        { id: 10, data: "x=14&y=7&board=.cabbaaabbbdd..caa..a.caaad..dca....caba...db.....c.bb...d......c......d.........................." },
+        { id: 11, data: "x=15&y=7&board=.bbaacccbbbcbc..ba.c.ab.ccbcc..aa....a.acba...ab....a..bab....a........bb....a........aa................." },
+        { id: 12, data: "x=13&y=11&board=.ddddbcbcbaa..babb.bccbbb...caa...dadd...c.a...ac.....b.c...cc...........ca...........ac............d............a............a................" },
+        { id: 13, data: "x=13&y=11&board=.bacccbabccc..bbaac.acaa......ab..cca......bb..bcb.......a..cbb.......b..cab...........ac...........a............c............a................" },
+        { id: 14, data: "x=13&y=7&board=.baacddccaba..bbabbddacbb..accbd.cdcca..a.c.d..ddda......d..aa...........c................." },
+        { id: 15, data: "x=13&y=10&board=.cacaacacacc..cccbbacaaca...ab.abbabaa....a.bb..bcc....a.cc..bac....b.a...b.b............b............b............a.............." },
+        { id: 16, data: "x=8&y=14&board=.acbdca..cccbda...abddb...bacad....caad....a.cd....c.bc....c.ac....a.cb......bd......db......db......ab........." },
+        { id: 17, data: "x=16&y=12&board=.aaaccacbcabbbb.....bcacacaccc......babaababc.......bab.cac.b.........b..ac...........b..ac..............b...............b...............b...............b...............a......................" },
+        { id: 18, data: "x=13&y=10&board=.cabbbaaacaa..aaddddbbbc...adcb.cdddd...bcaa.bc.cc...ba.a.bc.cb....a.b..a.......c.a..b.......d.d..........b.d....................." },
+        { id: 19, data: "x=14&y=15&board=.aaabbaaabccc..aca.bacacbc.....b.c.ccbca.....b.c..cbac.....b.a..bcba.....c.a..ccc........a..b.b........b....a........b.............b.............a.............a.............a.............a......................" },
+        { id: 20, data: "x=16&y=11&board=.cbddbacbadcdaa..ccbba.bbadcccd...b.db.c.ad.dda...d.ab...bd.aad.....ab...a...ac..........c...bc...............c...............c...............b...............b................." },
+      ];
+
+      const levelInput = document.getElementById("levelInput");
+      const loadBtn = document.getElementById("loadBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const sampleBtn = document.getElementById("sampleBtn");
+      const browseBtn = document.getElementById("browseBtn");
+      const levelDialog = document.getElementById("levelDialog");
+      const levelList = document.getElementById("levelList");
+      const closeDialogBtn = document.getElementById("closeDialogBtn");
+      const fileInput = document.getElementById("fileInput");
+      const dropZone = document.getElementById("dropZone");
+      const boardEl = document.getElementById("board");
+      const messageEl = document.getElementById("message");
+      const movesEl = document.getElementById("moves");
+      const remainingEl = document.getElementById("remaining");
+      const hoverSizeEl = document.getElementById("hoverSize");
+
+      const state = {
+        width: 0,
+        height: 0,
+        board: [],
+        original: [],
+        moves: 0,
+        hoverCells: [],
+        firstRender: true,
+      };
+
+      function decodeCell(char) {
+        if (char === ".") return 0;
+        if (/[a-z]/.test(char)) return char.charCodeAt(0) - 96;
+        if (/[A-Z]/.test(char)) return char.charCodeAt(0) - 64;
+        if (/[0-9]/.test(char)) return Number(char);
+        return 0;
+      }
+
+      function parseLevel(raw) {
+        const cleaned = raw.trim().replace(/^["']|["']$/g, "");
+        const params = new URLSearchParams(cleaned.replace(/^[?#]/, ""));
+        const width = Number(params.get("x"));
+        const height = Number(params.get("y"));
+        const board = params.get("board");
+        if (!width || !height || !board) {
+          throw new Error("Missing x, y, or board in the level string.");
+        }
+        if (board.length !== width * height) {
+          throw new Error("Board length does not match x * y.");
+        }
+        const grid = Array.from({ length: width }, () => Array(height).fill(0));
+        for (let i = 0; i < board.length; i += 1) {
+          const x = i % width;
+          const y = Math.floor(i / width);
+          grid[x][y] = decodeCell(board[i]);
+        }
+        return { width, height, board: grid };
+      }
+
+      function cloneBoard(board) {
+        return board.map((col) => col.slice());
+      }
+
+      function colorForValue(value) {
+        const hue = (value * 67) % 360;
+        return `linear-gradient(145deg, hsl(${hue}, 75%, 64%), hsl(${hue}, 72%, 52%))`;
+      }
+
+      function renderBoard() {
+        boardEl.style.setProperty("--cols", state.width);
+        boardEl.style.setProperty("--rows", state.height);
+        const size = Math.max(32, Math.min(62, Math.floor(520 / Math.max(state.width, state.height))));
+        boardEl.style.setProperty("--cell-size", `${size}px`);
+        boardEl.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+        for (let y = state.height - 1; y >= 0; y -= 1) {
+          for (let x = 0; x < state.width; x += 1) {
+            const value = state.board[x][y];
+            const cell = document.createElement("div");
+            cell.className = value ? "cell" : "cell empty";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            if (value) {
+              cell.style.setProperty("--cell-color", colorForValue(value));
+              if (state.firstRender) cell.classList.add("spawn");
+            }
+            fragment.appendChild(cell);
+          }
+        }
+        boardEl.appendChild(fragment);
+        updateStats();
+        state.firstRender = false;
+      }
+
+      function updateStats() {
+        movesEl.textContent = state.moves;
+        remainingEl.textContent = countRemaining();
+      }
+
+      function countRemaining() {
+        let count = 0;
+        for (let x = 0; x < state.width; x += 1) {
+          for (let y = 0; y < state.height; y += 1) {
+            if (state.board[x][y] !== 0) count += 1;
+          }
+        }
+        return count;
+      }
+
+      function inBounds(x, y) {
+        return x >= 0 && y >= 0 && x < state.width && y < state.height;
+      }
+
+      function getGroup(x, y) {
+        const target = state.board[x][y];
+        if (!target) return [];
+        const stack = [[x, y]];
+        const visited = new Set([`${x},${y}`]);
+        const group = [];
+        while (stack.length) {
+          const [cx, cy] = stack.pop();
+          group.push([cx, cy]);
+          const neighbors = [
+            [cx - 1, cy],
+            [cx + 1, cy],
+            [cx, cy - 1],
+            [cx, cy + 1],
+          ];
+          for (const [nx, ny] of neighbors) {
+            const key = `${nx},${ny}`;
+            if (!inBounds(nx, ny) || visited.has(key)) continue;
+            if (state.board[nx][ny] === target) {
+              visited.add(key);
+              stack.push([nx, ny]);
+            }
+          }
+        }
+        return group;
+      }
+
+      function applyGravityAndShift() {
+        // Drop blocks down, then slide over empty columns like the verifier.
+        for (let x = 0; x < state.width; x += 1) {
+          const col = [];
+          for (let y = 0; y < state.height; y += 1) {
+            if (state.board[x][y]) col.push(state.board[x][y]);
+          }
+          for (let y = 0; y < state.height; y += 1) {
+            state.board[x][y] = col[y] || 0;
+          }
+        }
+
+        for (let x = 1; x < state.width; x += 1) {
+          if (state.board[x][0] !== 0) continue;
+          let hasLeft = false;
+          for (let xx = 0; xx < x; xx += 1) {
+            if (state.board[xx][0] !== 0) {
+              hasLeft = true;
+              break;
+            }
+          }
+          if (!hasLeft) continue;
+          let hasRight = false;
+          for (let xx = x + 1; xx < state.width; xx += 1) {
+            if (state.board[xx][0] !== 0) {
+              hasRight = true;
+              break;
+            }
+          }
+          if (!hasRight) break;
+          state.board.splice(x, 1);
+          state.board.push(Array(state.height).fill(0));
+          x -= 1;
+        }
+      }
+
+      function clearHover() {
+        for (const cell of state.hoverCells) {
+          cell.classList.remove("hover");
+        }
+        state.hoverCells = [];
+        hoverSizeEl.textContent = "-";
+      }
+
+      function setMessage(text, type = "") {
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`.trim();
+      }
+
+      function handleCellClick(event) {
+        const cell = event.target.closest(".cell");
+        if (!cell || cell.classList.contains("empty")) return;
+        const x = Number(cell.dataset.x);
+        const y = Number(cell.dataset.y);
+        const group = getGroup(x, y);
+        if (group.length < 3) {
+          setMessage("Group too small. Need at least 3.", "error");
+          return;
+        }
+        for (const [gx, gy] of group) {
+          state.board[gx][gy] = 0;
+        }
+        state.moves += 1;
+        applyGravityAndShift();
+        renderBoard();
+        clearHover();
+        if (countRemaining() === 0) {
+          setMessage("Board cleared. You win!", "success");
+        } else {
+          setMessage("Nice! Keep going.", "success");
+        }
+      }
+
+      function handleHover(event) {
+        const cell = event.target.closest(".cell");
+        if (!cell || cell.classList.contains("empty")) {
+          clearHover();
+          return;
+        }
+        const x = Number(cell.dataset.x);
+        const y = Number(cell.dataset.y);
+        const group = getGroup(x, y);
+        clearHover();
+        for (const [gx, gy] of group) {
+          const selector = `.cell[data-x="${gx}"][data-y="${gy}"]`;
+          const cellEl = boardEl.querySelector(selector);
+          if (cellEl) {
+            cellEl.classList.add("hover");
+            state.hoverCells.push(cellEl);
+          }
+        }
+        hoverSizeEl.textContent = group.length;
+      }
+
+      function loadLevelFromText(text) {
+        try {
+          const parsed = parseLevel(text);
+          state.width = parsed.width;
+          state.height = parsed.height;
+          state.board = parsed.board;
+          state.original = cloneBoard(parsed.board);
+          state.moves = 0;
+          state.firstRender = true;
+          setMessage("Level loaded. Click a group to clear.", "success");
+          renderBoard();
+        } catch (error) {
+          setMessage(error.message, "error");
+        }
+      }
+
+      function resetBoard() {
+        if (!state.original.length) {
+          setMessage("Load a level first.", "error");
+          return;
+        }
+        state.board = cloneBoard(state.original);
+        state.moves = 0;
+        setMessage("Board reset.", "success");
+        renderBoard();
+      }
+
+      function readFile(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = String(reader.result || "");
+          levelInput.value = text.trim();
+          loadLevelFromText(text);
+        };
+        reader.readAsText(file);
+      }
+
+      function buildLevelList() {
+        levelList.innerHTML = "";
+        for (const level of curatedLevels) {
+          const params = new URLSearchParams(level.data);
+          const dims = `${params.get("x")}x${params.get("y")}`;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "level-btn";
+          button.textContent = `Level ${level.id} (${dims})`;
+          button.addEventListener("click", () => {
+            levelInput.value = level.data;
+            loadLevelFromText(level.data);
+            if (typeof levelDialog.close === "function") {
+              levelDialog.close();
+            } else {
+              levelDialog.removeAttribute("open");
+            }
+          });
+          levelList.appendChild(button);
+        }
+      }
+
+      loadBtn.addEventListener("click", () => {
+        loadLevelFromText(levelInput.value);
+      });
+
+      resetBtn.addEventListener("click", resetBoard);
+
+      sampleBtn.addEventListener("click", () => {
+        levelInput.value = sampleLevel;
+        loadLevelFromText(sampleLevel);
+      });
+
+      browseBtn.addEventListener("click", () => {
+        if (typeof levelDialog.showModal === "function") {
+          levelDialog.showModal();
+        } else {
+          levelDialog.setAttribute("open", "");
+        }
+      });
+
+      closeDialogBtn.addEventListener("click", () => {
+        if (typeof levelDialog.close === "function") {
+          levelDialog.close();
+        } else {
+          levelDialog.removeAttribute("open");
+        }
+      });
+
+      levelDialog.addEventListener("click", (event) => {
+        if (event.target === levelDialog) {
+          if (typeof levelDialog.close === "function") {
+            levelDialog.close();
+          } else {
+            levelDialog.removeAttribute("open");
+          }
+        }
+      });
+
+      fileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) readFile(file);
+      });
+
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = event.dataTransfer.files[0];
+        if (file) readFile(file);
+      });
+
+      boardEl.addEventListener("click", handleCellClick);
+      boardEl.addEventListener("mousemove", handleHover);
+      boardEl.addEventListener("mouseleave", clearHover);
+
+      buildLevelList();
+      levelInput.value = sampleLevel;
+      loadLevelFromText(sampleLevel);
+    </script>
+  </body>
+</html>
