@@ -58,6 +58,12 @@ def main():
         action="store_true",
         help="Pass the level content on stdin instead of a file path argument.",
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=600,
+        help="Timeout in seconds per level (default: 600)",
+    )
     args = parser.parse_args()
     
     levels_dir = Path("levels")
@@ -93,6 +99,7 @@ def main():
                     capture_output=True,
                     text=True,
                     check=False,
+                    timeout=args.timeout,
                 )
             else:
                 process = subprocess.run(
@@ -100,6 +107,7 @@ def main():
                     capture_output=True,
                     text=True,
                     check=False,
+                    timeout=args.timeout,
                 )
 
             elapsed = time.perf_counter() - start_time
@@ -125,6 +133,11 @@ def main():
                 if process.stderr:
                     print(f"  Solver stderr: {process.stderr.strip()}")
                 break
+        except subprocess.TimeoutExpired:
+            elapsed = time.perf_counter() - start_time
+            print(f"TIMEOUT ({elapsed:.3f}s)")
+            print(f"  Error: Level took longer than {args.timeout}s timeout")
+            break
         except Exception as e:
             elapsed = time.perf_counter() - start_time
             print(f"ERROR ({elapsed:.3f}s): {str(e)}")
