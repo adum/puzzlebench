@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runaway Robot Test Lab</title>
+    <style>
+      :root {
+        --bg: #f5f0e6;
+        --ink: #1e1a16;
+        --accent: #d16b2a;
+        --accent-dark: #7a3513;
+        --panel: #fff4df;
+        --grid: #d8c6a6;
+        --blocked: #1f1a14;
+        --robot: #d16b2a;
+        --trail: rgba(209, 107, 42, 0.25);
+        --ok: #1c7c54;
+        --bad: #b23a48;
+        --cell-size: 28px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Gill Sans", "Verdana", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 15% 10%, rgba(209, 107, 42, 0.16), transparent 35%),
+          radial-gradient(circle at 85% 15%, rgba(122, 53, 19, 0.18), transparent 40%),
+          radial-gradient(circle at 25% 80%, rgba(24, 124, 84, 0.16), transparent 35%),
+          var(--bg);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        overflow: hidden;
+      }
+
+      .shell {
+        width: min(1120px, 100%);
+        background: rgba(255, 244, 223, 0.9);
+        border: 2px solid var(--ink);
+        border-radius: 20px;
+        box-shadow: 0 30px 60px rgba(30, 26, 22, 0.18);
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) 1fr;
+        gap: 24px;
+        padding: 28px;
+      }
+
+      header {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      header h1 {
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+
+      header .tagline {
+        font-size: 14px;
+        opacity: 0.7;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--ink);
+        border-radius: 16px;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .row label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      select,
+      input[type="text"] {
+        width: 100%;
+        border: 1px solid var(--ink);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fff;
+      }
+
+      .buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .instructions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(26px, 1fr));
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid var(--ink);
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      .instr-slot {
+        display: grid;
+        place-items: center;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px dashed rgba(30, 26, 22, 0.4);
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.1s ease, background 0.1s ease, border 0.1s ease;
+      }
+
+      .instr-slot.required {
+        border-style: solid;
+        border-color: var(--accent);
+      }
+
+      .instr-slot.right {
+        background: rgba(209, 107, 42, 0.2);
+        border-color: var(--accent);
+      }
+
+      .instr-slot.down {
+        background: rgba(28, 124, 84, 0.2);
+        border-color: var(--ok);
+      }
+
+      .instr-slot.empty {
+        opacity: 0.6;
+      }
+
+      button {
+        border: 1px solid var(--ink);
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+
+      button.secondary {
+        background: #fff;
+        color: var(--ink);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .status {
+        font-size: 14px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--ink);
+        background: #fff;
+      }
+
+      .status.ok {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+
+      .status.bad {
+        border-color: var(--bad);
+        color: var(--bad);
+      }
+
+      .board-shell {
+        display: grid;
+        place-items: center;
+        background: #fff;
+        border: 2px solid var(--ink);
+        border-radius: 18px;
+        padding: 18px;
+        min-height: 520px;
+        min-width: 520px;
+      }
+
+      .board {
+        display: grid;
+        gap: 2px;
+        background: var(--grid);
+        padding: 2px;
+        border-radius: 12px;
+        transition: opacity 0.2s ease;
+      }
+
+      .cell {
+        background: #fffaf0;
+        border-radius: 4px;
+        position: relative;
+        width: var(--cell-size);
+        height: var(--cell-size);
+      }
+
+      .cell.blocked {
+        background: var(--blocked);
+      }
+
+      .cell.trail::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--trail);
+      }
+
+      .cell.robot::before {
+        content: "";
+        position: absolute;
+        width: 70%;
+        height: 55%;
+        border-radius: 10px;
+        background: var(--robot);
+        top: 20%;
+        left: 15%;
+        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+      }
+
+      .cell.robot::after {
+        content: "";
+        position: absolute;
+        width: 26%;
+        height: 26%;
+        border-radius: 50%;
+        background: #fff;
+        top: 28%;
+        left: 22%;
+        box-shadow:
+          0 0 0 2px #fff,
+          0 0 0 4px rgba(0, 0, 0, 0.15),
+          18px 0 0 0 #fff,
+          18px 0 0 2px #fff,
+          18px 0 0 4px rgba(0, 0, 0, 0.15);
+      }
+
+      .meta {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+      }
+
+      .meta span {
+        font-weight: 600;
+      }
+
+      @media (max-width: 880px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <h1>Runaway Robot Test Lab</h1>
+        <div class="tagline">Twenty hardcoded levels for human sanity checks.</div>
+      </header>
+
+      <section class="panel" aria-label="Controls">
+        <div>
+          <h2>Level Control</h2>
+          <div class="row">
+            <label for="levelSelect">Level</label>
+          </div>
+          <select id="levelSelect"></select>
+        </div>
+
+        <div class="buttons">
+          <button id="prevBtn" class="secondary">Prev</button>
+          <button id="nextBtn">Next</button>
+        </div>
+
+        <div>
+          <h2>Instructions</h2>
+          <div class="instructions" id="instructionSlots" aria-label="Instruction slots"></div>
+          <div class="meta" id="constraintInfo"></div>
+        </div>
+
+        <div class="buttons">
+          <button id="stepBtn" class="secondary">Step</button>
+          <button id="runBtn">Auto Run</button>
+        </div>
+
+        <div class="buttons">
+          <button id="resetBtn" class="secondary">Reset</button>
+          <button id="clearTrailBtn" class="secondary">Clear Trail</button>
+        </div>
+
+        <div class="status" id="statusBox">Ready.</div>
+      </section>
+
+      <section class="board-shell">
+        <div id="board" class="board" aria-label="Board"></div>
+      </section>
+    </div>
+
+    <script>
+      const levelStrings = [
+        "x=3&y=3&board=..XX.....&minpath=2&maxpath=2&level=1",
+        "x=4&y=4&board=.X.X..X....XXX..&minpath=2&maxpath=3&level=2",
+        "x=4&y=4&board=.XX...X....XXX..&minpath=2&maxpath=3&level=3",
+        "x=5&y=5&board=....X.....X..X..X..X.....&minpath=2&maxpath=3&level=4",
+        "x=5&y=5&board=..X............X....XX...&minpath=2&maxpath=3&level=5",
+        "x=6&y=6&board=.X..X.............X...............X.&minpath=3&maxpath=4&level=6",
+        "x=6&y=6&board=...XXX......X....XX.......XX.......X&minpath=3&maxpath=4&level=7",
+        "x=7&y=7&board=.X.X.................XX....X.......X......X.X.XX.&minpath=3&maxpath=4&level=8",
+        "x=7&y=7&board=...X.X......XXX....X....X.X.......X....XXX.X.....&minpath=3&maxpath=4&level=9",
+        "x=8&y=8&board=.X.X..X........X...X.....X.......X.......XX..X..XX........XX.X..&minpath=3&maxpath=5&level=10",
+        "x=8&y=8&board=...XXX.........X..X.....XXX.X.......X....XXX...X.X......X..XX.XX&minpath=3&maxpath=5&level=11",
+        "x=9&y=9&board=..X..X..X..X.X................X.X.X.X.X.......XX.......X.X..X....X....XX...X.X...&minpath=4&maxpath=6&level=12",
+        "x=9&y=9&board=....X.XX..X......XX.X.....X.X.X...X..X.X........XX..X......X........X..XX...X.X.X&minpath=4&maxpath=6&level=13",
+        "x=10&y=10&board=.XX...X..X........X.....X.....X..........X.......X..........X...X.X.X...........X...X..XX.......X...&minpath=4&maxpath=6&level=14",
+        "x=10&y=10&board=...X...........XXX.X.X......X.X...XX.X...XXX.X.....XX.XX..X....X..X..X.....XX.XXX..X..X.......XX.X..&minpath=4&maxpath=6&level=15",
+        "x=11&y=11&board=...XX..X..........XXXXX..........X..XX..X.......X.X........X..X.....X....X.X.....XX.....X..X............XX......X........&minpath=4&maxpath=6&level=16",
+        "x=11&y=11&board=..XXX............XX.X.....X.....X.......X...X.XX..X......X....XX....XX....XX.......X................XX..........X........&minpath=4&maxpath=6&level=17",
+        "x=12&y=12&board=..X..X........X..X.XX......X.X.XX.........X.X.X...X.....XX...XX................X....XXX....XX..XX...X........XX.............X..........X........&minpath=5&maxpath=8&level=18",
+        "x=12&y=12&board=.........X.X....................XX........X....X......X.X...X..X.....X...XXX...XX...X.X..X.X......XXX.XX.X.XX..X...X.X..X.X...X........XX.......&minpath=5&maxpath=8&level=19",
+        "x=13&y=13&board=.....XX.X........X.XX.X.................XXX..X.XX...........X.....X...X.....X.....XX.X.......XX...X.....X..X..X..X...X...X..XX........XXX..X.X....X....XX.X...XX..X....XX&minpath=5&maxpath=8&level=20"
+      ];
+
+      const state = {
+        levelIndex: 0,
+        width: 0,
+        height: 0,
+        board: [],
+        minpath: 0,
+        maxpath: 0,
+        instructions: [],
+        robot: { x: 0, y: 0 },
+        stepCount: 0,
+        pathIndex: 0,
+        status: "ready",
+        timer: null,
+        trail: new Set(),
+      };
+
+      const levelSelect = document.getElementById("levelSelect");
+      const boardEl = document.getElementById("board");
+      const instructionSlots = document.getElementById("instructionSlots");
+      const statusBox = document.getElementById("statusBox");
+      const constraintInfo = document.getElementById("constraintInfo");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const stepBtn = document.getElementById("stepBtn");
+      const runBtn = document.getElementById("runBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const clearTrailBtn = document.getElementById("clearTrailBtn");
+
+      function parseLevel(raw) {
+        const params = new URLSearchParams(raw.replace(/^[?#]/, ""));
+        const width = parseInt(params.get("x"), 10);
+        const height = parseInt(params.get("y"), 10);
+        const boardRaw = params.get("board") || "";
+        const minpath = parseInt(params.get("minpath"), 10);
+        const maxpath = parseInt(params.get("maxpath"), 10);
+        const board = [];
+        for (let x = 0; x < width; x++) {
+          board.push(new Array(height).fill(false));
+        }
+        for (let i = 0; i < boardRaw.length; i++) {
+          const x = i % width;
+          const y = Math.floor(i / width);
+          board[x][y] = boardRaw[i] === "X";
+        }
+        return { width, height, board, minpath, maxpath };
+      }
+
+      function currentInstruction() {
+        let result = "";
+        for (const step of state.instructions) {
+          if (!step) {
+            break;
+          }
+          result += step;
+        }
+        return result;
+      }
+
+      function updateConstraints() {
+        const length = currentInstruction().length;
+        constraintInfo.innerHTML = `
+          <div><span>Grid:</span> ${state.width} x ${state.height}</div>
+          <div><span>Length:</span> ${length} (${state.minpath} to ${state.maxpath})</div>
+          <div><span>Step:</span> ${state.stepCount}</div>
+        `;
+      }
+
+      function setStatus(text, tone) {
+        statusBox.textContent = text;
+        statusBox.classList.remove("ok", "bad");
+        if (tone) {
+          statusBox.classList.add(tone);
+        }
+      }
+
+      function buildBoard() {
+        boardEl.innerHTML = "";
+        for (let y = 0; y < state.height; y++) {
+          for (let x = 0; x < state.width; x++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            if (state.board[x][y]) {
+              cell.classList.add("blocked");
+            }
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            boardEl.appendChild(cell);
+          }
+        }
+        renderState();
+      }
+
+      function buildInstructionSlots() {
+        instructionSlots.innerHTML = "";
+        for (let i = 0; i < state.maxpath; i++) {
+          const slot = document.createElement("div");
+          slot.className = "instr-slot empty";
+          if (i < state.minpath) {
+            slot.classList.add("required");
+          }
+          slot.dataset.index = i;
+          slot.textContent = "·";
+          slot.addEventListener("click", () => cycleInstruction(i));
+          instructionSlots.appendChild(slot);
+        }
+        updateInstructionUI();
+      }
+
+      function updateInstructionUI() {
+        const slots = instructionSlots.children;
+        for (let i = 0; i < slots.length; i++) {
+          const slot = slots[i];
+          slot.classList.remove("right", "down", "empty");
+          const val = state.instructions[i];
+          if (!val) {
+            slot.classList.add("empty");
+            slot.textContent = "·";
+          } else {
+            slot.textContent = val;
+            slot.classList.add(val === "R" ? "right" : "down");
+          }
+        }
+        updateConstraints();
+      }
+
+      function cycleInstruction(index) {
+        const length = currentInstruction().length;
+        if (index > length) {
+          return;
+        }
+        if (!state.instructions[index]) {
+          state.instructions[index] = "R";
+        } else if (state.instructions[index] === "R") {
+          state.instructions[index] = "D";
+        } else {
+          state.instructions[index] = "";
+        }
+        if (index === length && state.instructions[index] === "") {
+          for (let i = index + 1; i < state.instructions.length; i++) {
+            state.instructions[i] = "";
+          }
+        }
+        resetRun(true);
+        updateInstructionUI();
+      }
+
+      function setInstructionAt(index, value) {
+        if (index < 0 || index >= state.instructions.length) {
+          return;
+        }
+        if (index > currentInstruction().length) {
+          return;
+        }
+        state.instructions[index] = value;
+        resetRun(true);
+        updateInstructionUI();
+      }
+
+      function pushInstruction(value) {
+        const length = currentInstruction().length;
+        if (length >= state.maxpath) {
+          return;
+        }
+        state.instructions[length] = value;
+        resetRun(true);
+        updateInstructionUI();
+      }
+
+      function popInstruction() {
+        const length = currentInstruction().length;
+        if (length === 0) {
+          return;
+        }
+        state.instructions[length - 1] = "";
+        resetRun(true);
+        updateInstructionUI();
+      }
+
+      function renderState() {
+        const cells = boardEl.children;
+        for (const cell of cells) {
+          cell.classList.remove("robot", "trail");
+          const x = parseInt(cell.dataset.x, 10);
+          const y = parseInt(cell.dataset.y, 10);
+          if (state.trail.has(`${x},${y}`)) {
+            cell.classList.add("trail");
+          }
+        }
+        if (state.robot.x >= 0 && state.robot.x < state.width && state.robot.y >= 0 && state.robot.y < state.height) {
+          const idx = state.robot.y * state.width + state.robot.x;
+          const cell = cells[idx];
+          cell.classList.add("robot");
+        }
+        updateConstraints();
+      }
+
+      function adjustCellSize() {
+        const containerWidth = boardEl.parentElement.clientWidth - 36;
+        const containerHeight = boardEl.parentElement.clientHeight - 36;
+        const size = Math.max(
+          18,
+          Math.min(containerWidth / state.width, containerHeight / state.height)
+        );
+        const px = Math.floor(size);
+        boardEl.style.setProperty("--cell-size", `${px}px`);
+        boardEl.style.gridTemplateColumns = `repeat(${state.width}, ${px}px)`;
+        boardEl.style.gridTemplateRows = `repeat(${state.height}, ${px}px)`;
+      }
+
+      function resetRun(keepTrail = false, shouldRender = true) {
+        state.robot = { x: 0, y: 0 };
+        state.stepCount = 0;
+        state.pathIndex = 0;
+        state.status = "ready";
+        if (!keepTrail) {
+          state.trail.clear();
+        }
+        if (state.timer) {
+          clearInterval(state.timer);
+          state.timer = null;
+          runBtn.textContent = "Auto Run";
+        }
+        if (shouldRender) {
+          renderState();
+        }
+        setStatus("Ready.");
+      }
+
+      function loadLevel(index) {
+        state.levelIndex = index;
+        const parsed = parseLevel(levelStrings[index]);
+        state.width = parsed.width;
+        state.height = parsed.height;
+        state.board = parsed.board;
+        state.minpath = parsed.minpath;
+        state.maxpath = parsed.maxpath;
+        state.instructions = new Array(state.maxpath).fill("");
+        buildBoard();
+        buildInstructionSlots();
+        resetRun(false, false);
+        adjustCellSize();
+      }
+
+      function stepOnce() {
+        const instr = currentInstruction();
+        if (!instr) {
+          setStatus("Set instructions to move.", "bad");
+          return false;
+        }
+        if (state.stepCount === 0 && (instr.length < state.minpath || instr.length > state.maxpath)) {
+          setStatus(
+            `Length must be ${state.minpath}-${state.maxpath}.`,
+            "bad"
+          );
+          return false;
+        }
+        if (state.robot.x >= state.width || state.robot.y >= state.height) {
+          setStatus("Robot already escaped.", "ok");
+          return false;
+        }
+        if (state.board[state.robot.x][state.robot.y]) {
+          setStatus(`Crash at ${state.robot.x}, ${state.robot.y}.`, "bad");
+          return false;
+        }
+
+        state.trail.add(`${state.robot.x},${state.robot.y}`);
+        const move = instr[state.pathIndex];
+        if (move === "R") {
+          state.robot.x += 1;
+        } else {
+          state.robot.y += 1;
+        }
+        state.pathIndex = (state.pathIndex + 1) % instr.length;
+        state.stepCount += 1;
+
+        if (state.robot.x >= state.width || state.robot.y >= state.height) {
+          setStatus("Escaped! ✅", "ok");
+          renderState();
+          return false;
+        }
+
+        if (state.board[state.robot.x][state.robot.y]) {
+          setStatus(`Crash at ${state.robot.x}, ${state.robot.y}.`, "bad");
+          renderState();
+          return false;
+        }
+
+        renderState();
+        setStatus("Running...");
+        return true;
+      }
+
+      function toggleRun() {
+        if (state.timer) {
+          clearInterval(state.timer);
+          state.timer = null;
+          runBtn.textContent = "Auto Run";
+          setStatus("Paused.");
+          return;
+        }
+        runBtn.textContent = "Stop";
+        setStatus("Running...");
+        state.timer = setInterval(() => {
+          const ok = stepOnce();
+          if (!ok) {
+            clearInterval(state.timer);
+            state.timer = null;
+            runBtn.textContent = "Auto Run";
+          }
+        }, 180);
+      }
+
+      levelStrings.forEach((raw, idx) => {
+        const levelNum = idx + 1;
+        const option = document.createElement("option");
+        option.value = idx;
+        option.textContent = `Level ${levelNum}`;
+        levelSelect.appendChild(option);
+      });
+
+      levelSelect.addEventListener("change", (event) => {
+        loadLevel(parseInt(event.target.value, 10));
+      });
+      prevBtn.addEventListener("click", () => {
+        const next = Math.max(0, state.levelIndex - 1);
+        levelSelect.value = String(next);
+        loadLevel(next);
+      });
+      nextBtn.addEventListener("click", () => {
+        const next = Math.min(levelStrings.length - 1, state.levelIndex + 1);
+        levelSelect.value = String(next);
+        loadLevel(next);
+      });
+      stepBtn.addEventListener("click", () => stepOnce());
+      runBtn.addEventListener("click", toggleRun);
+      resetBtn.addEventListener("click", () => resetRun());
+      clearTrailBtn.addEventListener("click", () => {
+        state.trail.clear();
+        renderState();
+      });
+
+      window.addEventListener("resize", adjustCellSize);
+      window.addEventListener("keydown", (event) => {
+        if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) {
+          return;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "r") {
+          pushInstruction("R");
+          event.preventDefault();
+          return;
+        }
+        if (key === "d") {
+          pushInstruction("D");
+          event.preventDefault();
+          return;
+        }
+        if (key === "backspace" || key === "delete") {
+          popInstruction();
+          event.preventDefault();
+          return;
+        }
+        if (key === "enter") {
+          stepOnce();
+          event.preventDefault();
+          return;
+        }
+        if (key === " ") {
+          toggleRun();
+          event.preventDefault();
+          return;
+        }
+        if (key === "arrowleft") {
+          prevBtn.click();
+          event.preventDefault();
+          return;
+        }
+        if (key === "arrowright") {
+          nextBtn.click();
+          event.preventDefault();
+        }
+      });
+
+      loadLevel(0);
+    </script>
+  </body>
+</html>
