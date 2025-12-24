@@ -1,3 +1,7 @@
+9/18/25,coil,gemini 2.5,600s,level 47
+11/24/25,coil,opus 4.5,600s,level 47
+11/24/25,coil,gpt 5.2,600s,level 171
+12/20/25,coil,gemini 3 flash,600s,level 176
 12/21/25,bricolage,opus 4.5,600s,level 55
 12/21/25,bricolage,gemini 3 flash,30s,level 316
 12/23/25,runaway,codex 5.2,30s,level 500
