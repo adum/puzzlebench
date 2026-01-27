@@ -1,1 +1,1 @@
-x=4&y=4&depth=2&board=0000,1111,1111,1101&pieces=X..,X..,XXX,X..|X..,XX.,.XX|XX,X.|X.,XX,XX|X.,XX,XX|.XX,XXX|XX|..X.,XXXX,...X&level=11
+x=4&y=4&depth=2&board=0000,1110,1111,0000&pieces=XX,.X|X,X,X,X|XX.,.XX|.X.,.X.,.X.,XXX|X,X,X|XXX.,..XX,...X|XX.,.XX|X,X,X&level=11

@@ -2,9 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
 import modulo_core
-from generate_levels import generate_level
+from generate_levels import (
+    DEFAULT_SEED_BASE,
+    DEFAULT_SECRET_FILE,
+    generate_level,
+    resolve_secret,
+)
 
 
 def main() -> int:
@@ -13,8 +19,23 @@ def main() -> int:
     parser.add_argument(
         "--seed-base",
         type=int,
-        default=0x5EED,
-        help="Base seed used for deterministic generation.",
+        default=DEFAULT_SEED_BASE,
+        help="Seed namespace integer combined with the secret to derive RNG seeds.",
+    )
+    parser.add_argument(
+        "--secret",
+        default=None,
+        help="Secret string used to derive RNG seeds (overrides env/file).",
+    )
+    parser.add_argument(
+        "--secret-file",
+        default=DEFAULT_SECRET_FILE,
+        help=f"Path to a secret file (default: {DEFAULT_SECRET_FILE}).",
+    )
+    parser.add_argument(
+        "--legacy-deterministic",
+        action="store_true",
+        help="Use the legacy deterministic seeding (reproducible but reversible).",
     )
     parser.add_argument(
         "--solution",
@@ -23,7 +44,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    generated = generate_level(args.level, seed_base=args.seed_base)
+    secret: str | None = None
+    if not args.legacy_deterministic:
+        secret, source = resolve_secret(args.secret, args.secret_file)
+        if source == "ephemeral":
+            print(
+                "Warning: no MODULO_SECRET/secret file found; using an ephemeral secret. "
+                "Results will not be reproducible across runs.",
+                file=sys.stderr,
+            )
+
+    generated = generate_level(
+        args.level,
+        seed_base=args.seed_base,
+        secret=secret,
+        legacy_deterministic=args.legacy_deterministic,
+    )
     print(modulo_core.level_to_string(generated.level))
     if args.solution:
         print(generated.solution)
@@ -32,4 +68,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

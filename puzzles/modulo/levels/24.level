@@ -1,1 +1,1 @@
-x=5&y=5&depth=3&board=11222,22122,10112,01100,10111&pieces=X..,XXX,..X|X,X,X,X,X|XX...,.XXXX|X...,XXXX,XX..|XXX,..X,.XX|X...,X.X.,XXXX|.X,XX,.X|.XXX,.XX.,XX..|XX...,.XXXX|X.X..,XXXXX|.X.,.X.,.XX,XX.|.X.,.XX,XX.&level=24
+x=4&y=5&depth=3&board=2211,2111,1001,1101,0010&pieces=X.,X.,XX,X.|X..,XX.,XXX,X..|X.,XX,.X|X.,XX,X.,X.,X.|.XX,XX.|XX,X.,X.|..XX,.XX.,XX..,.X..|..XX,XXX.|.X.,XXX|X,X,X,X|.X,XX,.X|XX,X.,X.&level=24

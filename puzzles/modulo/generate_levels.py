@@ -2,8 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import math
+import os
 import random
+import secrets
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,6 +76,67 @@ def build_shape_catalog(max_size: int = 6, samples_per_size: int = 6000) -> dict
 
 SHAPE_CATALOG = build_shape_catalog()
 AVAILABLE_MASSES = sorted(SHAPE_CATALOG)
+
+DEFAULT_SEED_BASE = 0x5EED
+DEFAULT_SECRET_FILE = ".modulo_secret"
+_SECRET_CACHE: tuple[str, str] | None = None
+
+
+def legacy_seed(level_num: int, seed_base: int) -> int:
+    # Legacy deterministic seeding used in the first pass of this puzzle set.
+    return seed_base + level_num * 7919
+
+
+def derive_seed(level_num: int, seed_base: int, secret: str) -> int:
+    """
+    Derive a per-level RNG seed from a secret so levels are not reproducible
+    from code + level number alone.
+    """
+    material = f"{seed_base}:{level_num}".encode("utf-8")
+    digest = hmac.new(secret.encode("utf-8"), material, hashlib.sha256).digest()
+    return int.from_bytes(digest[:16], byteorder="big", signed=False)
+
+
+def _read_secret_file(secret_file: str) -> str | None:
+    path = Path(secret_file)
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8").strip()
+    return text or None
+
+
+def resolve_secret(secret: str | None, secret_file: str | None) -> tuple[str, str]:
+    """
+    Resolve the generator secret from CLI input, environment, or a local file.
+    Returns (secret, source_label).
+    """
+    if secret:
+        return secret, "cli"
+
+    env_secret = os.environ.get("MODULO_SECRET", "").strip()
+    if env_secret:
+        return env_secret, "env"
+
+    if secret_file:
+        file_secret = _read_secret_file(secret_file)
+        if file_secret:
+            return file_secret, "file"
+
+    # Last resort: process-local ephemeral secret. This hardens against
+    # reproduction, but also makes generation non-reproducible unless the
+    # caller supplies a secret.
+    return secrets.token_hex(32), "ephemeral"
+
+
+def default_secret(secret_file: str = DEFAULT_SECRET_FILE) -> tuple[str, str]:
+    """
+    Cache a default secret per-process so repeated calls to generate_level()
+    are stable within a run.
+    """
+    global _SECRET_CACHE
+    if _SECRET_CACHE is None:
+        _SECRET_CACHE = resolve_secret(None, secret_file)
+    return _SECRET_CACHE
 
 
 def piece_count(level: int) -> int:
@@ -147,8 +213,20 @@ class GeneratedLevel:
     solution: str
 
 
-def generate_level(level_num: int, seed_base: int = 0x5EED) -> GeneratedLevel:
-    rng = random.Random(seed_base + level_num * 7919)
+def generate_level(
+    level_num: int,
+    seed_base: int = DEFAULT_SEED_BASE,
+    *,
+    secret: str | None = None,
+    legacy_deterministic: bool = False,
+) -> GeneratedLevel:
+    if legacy_deterministic:
+        rng_seed = legacy_seed(level_num, seed_base)
+    else:
+        if secret is None:
+            secret, _ = default_secret()
+        rng_seed = derive_seed(level_num, seed_base, secret)
+    rng = random.Random(rng_seed)
     depth = depth_for_level(level_num)
     weights = mass_weights(level_num)
 
@@ -217,8 +295,23 @@ def main() -> int:
     parser.add_argument(
         "--seed-base",
         type=int,
-        default=0x5EED,
-        help="Base seed used for deterministic generation.",
+        default=DEFAULT_SEED_BASE,
+        help="Seed namespace integer combined with the secret to derive RNG seeds.",
+    )
+    parser.add_argument(
+        "--secret",
+        default=None,
+        help="Secret string used to derive RNG seeds (overrides env/file).",
+    )
+    parser.add_argument(
+        "--secret-file",
+        default=DEFAULT_SECRET_FILE,
+        help=f"Path to a secret file (default: {DEFAULT_SECRET_FILE}).",
+    )
+    parser.add_argument(
+        "--legacy-deterministic",
+        action="store_true",
+        help="Use the legacy deterministic seeding (reproducible but reversible).",
     )
     parser.add_argument(
         "--write-solutions",
@@ -233,13 +326,29 @@ def main() -> int:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    secret: str | None = None
+    secret_source = "legacy"
+    if not args.legacy_deterministic:
+        secret, secret_source = resolve_secret(args.secret, args.secret_file)
+        if secret_source == "ephemeral":
+            print(
+                "Warning: no MODULO_SECRET/secret file found; using an ephemeral secret. "
+                "Levels will not be reproducible across runs.",
+                file=sys.stderr,
+            )
+
     sol_dir: Path | None = None
     if args.write_solutions:
         sol_dir = Path("solutions")
         sol_dir.mkdir(parents=True, exist_ok=True)
 
     for level_num in range(args.start, args.end + 1):
-        generated = generate_level(level_num, seed_base=args.seed_base)
+        generated = generate_level(
+            level_num,
+            seed_base=args.seed_base,
+            secret=secret,
+            legacy_deterministic=args.legacy_deterministic,
+        )
         level_text = modulo_core.level_to_string(generated.level)
         level_path = out_dir / f"{level_num}.level"
         level_path.write_text(level_text + "\n", encoding="utf-8")
@@ -257,7 +366,9 @@ def main() -> int:
 
     # Helpful for quick inspection when run manually.
     latest = sorted(out_dir.glob("*.level"), key=level_sort_key)[-1]
-    print(f"Wrote levels into {out_dir} (latest: {latest.name})")
+    print(
+        f"Wrote levels into {out_dir} (latest: {latest.name}, seeding={secret_source})"
+    )
     return 0
 
 
