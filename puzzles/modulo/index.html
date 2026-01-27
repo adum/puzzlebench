@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modulo Puzzle Player</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+      :root {
+        --bg-ink: #0c1b1f;
+        --bg-haze: #1c3b43;
+        --bg-warm: #f2b66d;
+        --panel: rgba(246, 252, 253, 0.9);
+        --panel-strong: #ffffff;
+        --ink: #102326;
+        --muted: #4a5f63;
+        --accent: #0f9d8f;
+        --accent-strong: #0b7c71;
+        --accent-warm: #d96a2b;
+        --border: rgba(16, 35, 38, 0.12);
+        --shadow: rgba(6, 22, 25, 0.22);
+        --grid-line: rgba(16, 35, 38, 0.26);
+        --cell-size: 54px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: "Sora", "Avenir Next", sans-serif;
+        background:
+          radial-gradient(900px 620px at 12% 12%, rgba(242, 182, 109, 0.26) 0%, rgba(242, 182, 109, 0) 60%),
+          radial-gradient(1200px 800px at 88% 20%, rgba(15, 157, 143, 0.32) 0%, rgba(15, 157, 143, 0) 68%),
+          linear-gradient(135deg, var(--bg-ink) 0%, var(--bg-haze) 52%, #2b5a61 100%);
+        padding: 28px 20px 44px;
+      }
+
+      .app {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        gap: 22px;
+        grid-template-columns: minmax(300px, 380px) 1fr;
+      }
+
+      header {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: flex-start;
+        gap: 12px 20px;
+        color: #f5fbfc;
+        animation: rise 480ms ease-out both;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: clamp(34px, 5vw, 52px);
+        letter-spacing: 0.01em;
+      }
+
+      header p {
+        margin: 0;
+        max-width: 620px;
+        color: rgba(245, 251, 252, 0.9);
+        font-size: 15.5px;
+        line-height: 1.5;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 18px 18px 20px;
+        box-shadow: 0 22px 44px var(--shadow);
+        position: relative;
+        overflow: hidden;
+        animation: rise 520ms ease-out both;
+      }
+
+      .panel::before {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        right: -56px;
+        top: -70px;
+        background: radial-gradient(circle, rgba(217, 106, 43, 0.28) 0%, rgba(217, 106, 43, 0) 70%);
+        pointer-events: none;
+      }
+
+      .panel > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .panel h2 {
+        margin: 4px 0 8px;
+        font-size: 18px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+
+      textarea,
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid rgba(16, 35, 38, 0.2);
+        padding: 11px 12px;
+        font-family: "IBM Plex Mono", "Menlo", monospace;
+        font-size: 13.5px;
+        background: var(--panel-strong);
+        color: var(--ink);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      textarea {
+        min-height: 118px;
+        resize: vertical;
+        line-height: 1.45;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .row > * {
+        flex: 1;
+      }
+
+      button {
+        border: none;
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-family: "Sora", "Avenir Next", sans-serif;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--accent) 0%, #24b39f 100%);
+        color: white;
+        box-shadow: 0 10px 18px rgba(15, 157, 143, 0.28);
+        transition: transform 140ms ease, box-shadow 160ms ease;
+      }
+
+      button.secondary {
+        background: linear-gradient(135deg, #2c7a96 0%, #3e9fb8 100%);
+        box-shadow: 0 10px 18px rgba(44, 122, 150, 0.26);
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid rgba(16, 35, 38, 0.22);
+        box-shadow: none;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status {
+        margin-top: 6px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--accent-strong);
+        min-height: 20px;
+      }
+
+      .status.error {
+        color: #b02c2c;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .meta strong {
+        color: var(--ink);
+      }
+
+      .pieces-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+        align-content: start;
+      }
+
+      .piece-card {
+        border-radius: 16px;
+        border: 1px solid rgba(16, 35, 38, 0.16);
+        padding: 8px 8px 10px;
+        background: rgba(255, 255, 255, 0.92);
+        display: grid;
+        gap: 6px;
+        cursor: default;
+        transition: border-color 150ms ease, transform 150ms ease, box-shadow 160ms ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .piece-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -40% -60% auto;
+        width: 160px;
+        height: 160px;
+        background: radial-gradient(circle, rgba(16, 35, 38, 0.16) 0%, rgba(16, 35, 38, 0) 72%);
+        transform: rotate(12deg);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+
+      .piece-card:hover::after,
+      .piece-card.current::after {
+        opacity: 1;
+      }
+
+      .piece-card:hover {
+        transform: none;
+        border-color: rgba(16, 35, 38, 0.26);
+        box-shadow: 0 12px 20px rgba(16, 35, 38, 0.12);
+      }
+
+      .piece-card.current {
+        border-color: var(--accent-warm);
+        box-shadow: 0 18px 30px rgba(217, 106, 43, 0.28);
+        transform: translateY(-1px);
+      }
+
+      .piece-card.current::after {
+        background: radial-gradient(circle, rgba(217, 106, 43, 0.32) 0%, rgba(217, 106, 43, 0) 72%);
+      }
+
+      .piece-card.placed {
+        border-color: rgba(16, 35, 38, 0.28);
+        opacity: 0.7;
+        filter: grayscale(1) saturate(0.2);
+      }
+
+      .piece-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .piece-dims {
+        font-weight: 600;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      .piece-right {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .piece-badge {
+        padding: 2px 7px 3px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        background: var(--accent-warm);
+        color: #fff;
+        box-shadow: 0 6px 12px rgba(217, 106, 43, 0.28);
+      }
+
+      .piece-card.placed .piece-badge {
+        background: rgba(16, 35, 38, 0.18);
+        color: var(--ink);
+        box-shadow: none;
+      }
+
+      .mini {
+        display: inline-grid;
+        gap: 2px;
+        align-self: center;
+        justify-self: start;
+      }
+
+      .mini .cell {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid rgba(16, 35, 38, 0.12);
+        background: #eef4f6;
+      }
+
+      .mini .cell.on {
+        background: linear-gradient(135deg, var(--accent) 0%, #30c0ae 100%);
+        border-color: rgba(11, 124, 113, 0.6);
+      }
+
+      .piece-card.placed .piece-title {
+        color: var(--muted);
+      }
+
+      .piece-card.placed .mini .cell {
+        background: #e3e7e9;
+        border-color: rgba(16, 35, 38, 0.18);
+      }
+
+      .piece-card.placed .mini .cell.on {
+        background: linear-gradient(135deg, #c7ced1 0%, #9aa6aa 100%);
+        border-color: rgba(16, 35, 38, 0.3);
+        box-shadow: none;
+      }
+
+      .board-panel {
+        display: grid;
+        gap: 12px;
+        animation: rise 560ms ease-out both;
+        align-items: start;
+      }
+
+      .board-wrap {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        padding: 16px;
+        box-shadow: 0 26px 52px rgba(6, 22, 25, 0.26);
+        overflow: auto;
+        position: relative;
+        display: inline-block;
+        margin: 0 auto;
+        transition: box-shadow 180ms ease, border-color 180ms ease;
+      }
+
+      .board-wrap.solved {
+        border-color: rgba(34, 197, 94, 0.95);
+        box-shadow:
+          0 0 0 5px rgba(34, 197, 94, 0.45),
+          0 32px 68px rgba(34, 197, 94, 0.28);
+      }
+
+      .board-wrap.failed {
+        border-color: rgba(220, 38, 38, 0.96);
+        box-shadow:
+          0 0 0 5px rgba(220, 38, 38, 0.42),
+          0 32px 68px rgba(220, 38, 38, 0.26);
+      }
+
+      .pieces-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 16px 18px 18px;
+        box-shadow: 0 18px 34px rgba(6, 22, 25, 0.18);
+        display: grid;
+        gap: 8px;
+      }
+
+      .pieces-panel h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+
+      .pieces-panel .pieces-grid {
+        margin-top: 0;
+      }
+
+      .hand-indicator {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 8px 9px 9px;
+        border-radius: 14px;
+        border: 1px solid rgba(16, 35, 38, 0.18);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 20px rgba(6, 22, 25, 0.18);
+        display: grid;
+        gap: 6px;
+        justify-items: center;
+        pointer-events: none;
+        min-width: 84px;
+      }
+
+      .hand-index {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--accent-warm);
+        letter-spacing: 0.02em;
+      }
+
+      .hand-label {
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .hand-piece-wrap {
+        display: grid;
+        gap: 4px;
+        justify-items: center;
+      }
+
+      .hand-piece {
+        display: inline-grid;
+        gap: 2px;
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid rgba(16, 35, 38, 0.16);
+        background: rgba(255, 255, 255, 0.7);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+      }
+
+      .hand-piece .cell {
+        border: 1px solid rgba(217, 106, 43, 0.55);
+        background: transparent;
+      }
+
+      .hand-piece .cell.on {
+        background: rgba(217, 106, 43, 0.18);
+        border-color: rgba(217, 106, 43, 0.95);
+        box-shadow: none;
+      }
+
+      .hand-empty {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .board {
+        display: inline-grid;
+        gap: 0 !important;
+        padding: 0 !important;
+        border-radius: 16px;
+        background: none;
+        border: 1px solid var(--grid-line);
+        overflow: hidden;
+        grid-auto-rows: var(--cell-size);
+        place-content: start;
+        min-width: min(100%, 720px);
+        min-height: 0;
+      }
+
+      .board-cell {
+        width: var(--cell-size);
+        height: var(--cell-size);
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        outline: 0;
+        appearance: none;
+        -webkit-appearance: none;
+        display: grid;
+        place-items: center;
+        font-size: clamp(17px, 2.6vw, 24px);
+        font-weight: 800;
+        color: #113034;
+        user-select: none;
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+        line-height: 1;
+        box-shadow: inset 0 0 0 1px var(--grid-line);
+        transition: box-shadow 160ms ease;
+      }
+
+      .board-cell:hover {
+        box-shadow:
+          inset 0 0 0 1px rgba(15, 157, 143, 0.65),
+          inset 0 0 0 3px rgba(15, 157, 143, 0.25);
+      }
+
+      .board-cell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        pointer-events: none;
+        transition: background 120ms ease, box-shadow 120ms ease;
+      }
+
+      .board-cell::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 0 solid transparent;
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .board-cell.preview {
+        z-index: 4;
+      }
+
+      .board-cell.preview-valid {
+        --preview-color: rgba(15, 157, 143, 0.95);
+        --preview-fill: rgba(15, 157, 143, 0.26);
+      }
+
+      .board-cell.preview-invalid {
+        --preview-color: rgba(176, 44, 44, 0.95);
+        --preview-fill: rgba(176, 44, 44, 0.28);
+      }
+
+      .board-cell.preview::before {
+        background: var(--preview-fill);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+      }
+
+      .board-cell.preview::after {
+        border-color: var(--preview-color);
+      }
+
+      .board-cell.preview-n::after {
+        border-top-width: 4px;
+      }
+
+      .board-cell.preview-e::after {
+        border-right-width: 4px;
+      }
+
+      .board-cell.preview-s::after {
+        border-bottom-width: 4px;
+      }
+
+      .board-cell.preview-w::after {
+        border-left-width: 4px;
+      }
+
+      .board-cell[data-value="0"] {
+        background: linear-gradient(145deg, #dfe6e8 0%, #c9d3d6 100%);
+        color: rgba(16, 35, 38, 0.6);
+      }
+
+      .board-cell[data-value="1"] {
+        background: linear-gradient(145deg, #78d6c7 0%, #36b7a5 100%);
+        color: #0b2b29;
+      }
+
+      .board-cell[data-value="2"] {
+        background: linear-gradient(145deg, #ffd590 0%, #f5b04f 100%);
+        color: #4a2504;
+      }
+
+      .board-cell[data-value="3"] {
+        background: linear-gradient(145deg, #ff9a83 0%, #e96a52 100%);
+        color: #4a1307;
+      }
+
+      .board-cell[data-value="4"] {
+        background: linear-gradient(145deg, #b7e88c 0%, #6ac25d 100%);
+        color: #15320d;
+      }
+
+      .hint {
+        font-size: 13px;
+        color: rgba(245, 251, 252, 0.92);
+        font-weight: 600;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(12, 27, 31, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        align-self: start;
+        box-shadow: 0 12px 20px rgba(6, 22, 25, 0.24);
+      }
+
+      .hint strong {
+        color: #f7c27c;
+      }
+
+      .attempt {
+        margin-top: 6px;
+        min-height: 68px;
+      }
+
+      .attempt textarea {
+        min-height: 76px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1060px) {
+        :root {
+          --cell-size: 50px;
+        }
+
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .pieces-grid {
+          max-height: none;
+        }
+
+        .board-wrap {
+          order: -1;
+        }
+      }
+
+      @media (max-width: 640px) {
+        :root {
+          --cell-size: 46px;
+        }
+
+        body {
+          padding: 22px 14px 36px;
+        }
+
+        .panel {
+          padding: 16px;
+        }
+
+        header h1 {
+          font-size: clamp(32px, 8vw, 44px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div>
+          <h1>Modulo</h1>
+          <p>
+            Place each piece exactly once. Every filled square bumps the board by +1 modulo the
+            level's depth. When every cell returns to <strong>0</strong>, you win.
+          </p>
+        </div>
+      </header>
+
+      <section class="panel controls">
+        <h2>Level Input</h2>
+        <label for="level-input">Paste a level string</label>
+        <textarea id="level-input" spellcheck="false"></textarea>
+
+        <div class="row" style="margin-top: 8px">
+          <button id="parse-btn">Parse Level</button>
+          <button id="reset-btn" class="secondary" disabled>Reset</button>
+          <button id="undo-btn" class="ghost" disabled>Undo</button>
+        </div>
+
+        <div class="row" style="margin-top: 6px">
+          <input id="level-number" type="number" min="1" value="1" />
+          <button id="load-btn" class="ghost">Load by #</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="meta" id="meta"></div>
+
+        <div class="attempt">
+          <label for="attempt-output">Attempt string (piece order)</label>
+          <textarea id="attempt-output" readonly spellcheck="false"></textarea>
+        </div>
+      </section>
+
+      <section class="board-panel">
+        <div id="board-wrap" class="board-wrap">
+          <div id="hand-indicator" class="hand-indicator" aria-live="polite">
+            <div class="hand-label">Next</div>
+            <div id="hand-index" class="hand-index">#0</div>
+            <div id="hand-piece" class="hand-piece-wrap"></div>
+          </div>
+          <div id="board" class="board" aria-label="Modulo board"></div>
+        </div>
+        <div class="pieces-panel">
+          <h2>Pieces</h2>
+          <div id="pieces-grid" class="pieces-grid"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const levelInput = document.getElementById("level-input");
+      const parseBtn = document.getElementById("parse-btn");
+      const resetBtn = document.getElementById("reset-btn");
+      const undoBtn = document.getElementById("undo-btn");
+      const loadBtn = document.getElementById("load-btn");
+      const levelNumber = document.getElementById("level-number");
+      const statusEl = document.getElementById("status");
+      const metaEl = document.getElementById("meta");
+      const boardWrapEl = document.getElementById("board-wrap");
+      const boardEl = document.getElementById("board");
+      const piecesGridEl = document.getElementById("pieces-grid");
+      const attemptOutput = document.getElementById("attempt-output");
+      const handIndexEl = document.getElementById("hand-index");
+      const handPieceEl = document.getElementById("hand-piece");
+
+      let currentLevel = null;
+      let initialBoard = null;
+      let boardState = null;
+      let placements = [];
+      let history = [];
+      let currentPieceIndex = 0;
+      let hoverPlacement = null;
+      let cellEls = [];
+
+      const PREVIEW_CLASSES = [
+        "preview",
+        "preview-valid",
+        "preview-invalid",
+        "preview-n",
+        "preview-e",
+        "preview-s",
+        "preview-w",
+      ];
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message || "";
+        statusEl.classList.toggle("error", Boolean(isError));
+      }
+
+      function cleanBoardString(boardRaw) {
+        return (boardRaw || "").replace(/[\s,]+/g, "");
+      }
+
+      function parsePiece(pieceRaw) {
+        let x = 0;
+        let y = 0;
+        const cells = [];
+        const rows = (pieceRaw || "").trim();
+        for (const ch of rows) {
+          if (ch === ",") {
+            x = 0;
+            y += 1;
+            continue;
+          }
+          if (ch === "X" || ch === "x") {
+            cells.push([x, y]);
+          } else if (ch === "." || /\s/.test(ch)) {
+            // skip
+          } else {
+            throw new Error(`Invalid piece character: ${ch}`);
+          }
+          x += 1;
+        }
+        if (!cells.length) {
+          throw new Error("Piece has no squares.");
+        }
+        const minX = Math.min(...cells.map((c) => c[0]));
+        const minY = Math.min(...cells.map((c) => c[1]));
+        const norm = cells.map(([cx, cy]) => [cx - minX, cy - minY]);
+        const width = Math.max(...norm.map((c) => c[0])) + 1;
+        const height = Math.max(...norm.map((c) => c[1])) + 1;
+        return { cells: norm, width, height };
+      }
+
+      function parseLevel(levelText) {
+        const trimmed = (levelText || "").trim().replace(/^\?/, "");
+        const params = new URLSearchParams(trimmed);
+        const width = Number(params.get("x"));
+        const height = Number(params.get("y"));
+        const depth = Number(params.get("depth"));
+        const boardRaw = params.get("board");
+        const piecesRaw = params.get("pieces");
+        const levelNum = params.get("level");
+
+        if (!width || !height || !depth || !boardRaw || !piecesRaw) {
+          throw new Error("Level must include x, y, depth, board, and pieces.");
+        }
+
+        const boardStr = cleanBoardString(boardRaw);
+        const expected = width * height;
+        if (boardStr.length !== expected) {
+          throw new Error(`Board length ${boardStr.length} does not match x*y (${expected}).`);
+        }
+
+        const board = Array.from({ length: height }, () => Array(width).fill(0));
+        for (let i = 0; i < boardStr.length; i += 1) {
+          const ch = boardStr[i];
+          if (!/[0-9]/.test(ch)) {
+            throw new Error(`Invalid board character: ${ch}`);
+          }
+          const x = i % width;
+          const y = Math.floor(i / width);
+          board[y][x] = Number(ch) % depth;
+        }
+
+        const pieces = piecesRaw
+          .split("|")
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .map(parsePiece);
+        if (!pieces.length) {
+          throw new Error("Level contains no pieces.");
+        }
+
+        return {
+          width,
+          height,
+          depth,
+          board,
+          pieces,
+          level: levelNum ? Number(levelNum) : null,
+        };
+      }
+
+      function cloneBoard(board) {
+        return board.map((row) => row.slice());
+      }
+
+      function applyPiece(board, piece, offX, offY, depth, delta = 1) {
+        for (const [px, py] of piece.cells) {
+          const x = offX + px;
+          const y = offY + py;
+          board[y][x] = (board[y][x] + delta + depth) % depth;
+        }
+      }
+
+      function recomputeBoard() {
+        boardState = cloneBoard(initialBoard);
+        for (let i = 0; i < placements.length; i += 1) {
+          const placement = placements[i];
+          if (!placement) continue;
+          const piece = currentLevel.pieces[i];
+          applyPiece(boardState, piece, placement.x, placement.y, currentLevel.depth, 1);
+        }
+        updateSolvedState();
+      }
+
+      function boardSolved() {
+        if (!placements.every(Boolean)) return false;
+        for (let y = 0; y < currentLevel.height; y += 1) {
+          for (let x = 0; x < currentLevel.width; x += 1) {
+            if (boardState[y][x] !== 0) return false;
+          }
+        }
+        return true;
+      }
+
+      function updateSolvedState() {
+        if (!boardWrapEl) return;
+        if (!currentLevel || !boardState) {
+          boardWrapEl.classList.remove("solved", "failed");
+          return;
+        }
+        const allPlaced = placements.length > 0 && placements.every(Boolean);
+        const solved = boardSolved();
+        const failed = allPlaced && !solved;
+        boardWrapEl.classList.toggle("solved", solved);
+        boardWrapEl.classList.toggle("failed", failed);
+      }
+
+      function toHex2(n) {
+        return n.toString(16).padStart(2, "0");
+      }
+
+      function updateAttempt() {
+        if (!currentLevel) {
+          attemptOutput.value = "";
+          return;
+        }
+        const parts = placements.map((p) => {
+          if (!p) return "????";
+          return `${toHex2(p.x)}${toHex2(p.y)}`;
+        });
+        attemptOutput.value = parts.join("");
+      }
+
+      function nextUnplaced(start = 0) {
+        for (let i = start; i < placements.length; i += 1) {
+          if (!placements[i]) return i;
+        }
+        for (let i = 0; i < start; i += 1) {
+          if (!placements[i]) return i;
+        }
+        return -1;
+      }
+
+      function syncCurrentPieceIndex() {
+        if (!currentLevel) {
+          currentPieceIndex = 0;
+          return;
+        }
+        currentPieceIndex = nextUnplaced(0);
+      }
+
+      function updateMeta() {
+        if (!currentLevel) {
+          metaEl.innerHTML = "";
+          return;
+        }
+        const placed = placements.filter(Boolean).length;
+        const next = nextUnplaced(0);
+        const maxPiece = currentLevel.pieces.reduce(
+          (acc, piece) => {
+            acc.w = Math.max(acc.w, piece.width);
+            acc.h = Math.max(acc.h, piece.height);
+            return acc;
+          },
+          { w: 0, h: 0 }
+        );
+        metaEl.innerHTML = `
+          <div><strong>Level:</strong> ${currentLevel.level ?? "?"}</div>
+          <div><strong>Board:</strong> ${currentLevel.width}x${currentLevel.height}</div>
+          <div><strong>Depth:</strong> ${currentLevel.depth}</div>
+          <div><strong>Pieces:</strong> ${placed}/${placements.length}</div>
+          <div><strong>Next:</strong> ${next === -1 ? "all placed" : `#${next}`}</div>
+          <div><strong>Max piece:</strong> ${maxPiece.w}x${maxPiece.h}</div>
+        `;
+      }
+
+      function keyFor(x, y) {
+        return `${x},${y}`;
+      }
+
+      function computeHoverPreview() {
+        if (!currentLevel || !hoverPlacement) return null;
+        if (currentPieceIndex === -1) return null;
+        const piece = currentLevel.pieces[currentPieceIndex];
+        if (!piece) return null;
+
+        const pieceCells = piece.cells.map(([px, py]) => [
+          hoverPlacement.x + px,
+          hoverPlacement.y + py,
+        ]);
+        const pieceSet = new Set(pieceCells.map(([x, y]) => keyFor(x, y)));
+
+        let valid = true;
+        for (const [x, y] of pieceCells) {
+          if (x < 0 || y < 0 || x >= currentLevel.width || y >= currentLevel.height) {
+            valid = false;
+            break;
+          }
+        }
+
+        const outline = new Map();
+        for (const [x, y] of pieceCells) {
+          if (x < 0 || y < 0 || x >= currentLevel.width || y >= currentLevel.height) {
+            continue;
+          }
+          const sides = {
+            n: !pieceSet.has(keyFor(x, y - 1)),
+            e: !pieceSet.has(keyFor(x + 1, y)),
+            s: !pieceSet.has(keyFor(x, y + 1)),
+            w: !pieceSet.has(keyFor(x - 1, y)),
+          };
+          outline.set(keyFor(x, y), sides);
+        }
+
+        return { valid, outline };
+      }
+
+      function handleBoardHover(x, y) {
+        if (!currentLevel) return;
+        if (hoverPlacement && hoverPlacement.x === x && hoverPlacement.y === y) return;
+        hoverPlacement = { x, y };
+        updatePreview();
+      }
+
+      function clearPreview() {
+        if (!cellEls.length) return;
+        for (let y = 0; y < cellEls.length; y += 1) {
+          for (let x = 0; x < cellEls[y].length; x += 1) {
+            cellEls[y][x].classList.remove(...PREVIEW_CLASSES);
+          }
+        }
+      }
+
+      function updatePreview() {
+        if (!currentLevel || !cellEls.length) return;
+        syncCurrentPieceIndex();
+        clearPreview();
+        const preview = computeHoverPreview();
+        if (!preview) return;
+
+        for (const [key, sides] of preview.outline.entries()) {
+          const [xText, yText] = key.split(",");
+          const x = Number(xText);
+          const y = Number(yText);
+          const cell = cellEls[y]?.[x];
+          if (!cell) continue;
+          cell.classList.add("preview", preview.valid ? "preview-valid" : "preview-invalid");
+          if (sides.n) cell.classList.add("preview-n");
+          if (sides.e) cell.classList.add("preview-e");
+          if (sides.s) cell.classList.add("preview-s");
+          if (sides.w) cell.classList.add("preview-w");
+        }
+      }
+
+      function renderBoard() {
+        boardEl.innerHTML = "";
+        if (!currentLevel) return;
+        syncCurrentPieceIndex();
+        boardEl.style.gridTemplateColumns = `repeat(${currentLevel.width}, var(--cell-size))`;
+        boardEl.style.gap = "0px";
+        boardEl.style.padding = "0px";
+        boardEl.style.background = "transparent";
+        cellEls = Array.from({ length: currentLevel.height }, () => Array(currentLevel.width));
+
+        for (let y = 0; y < currentLevel.height; y += 1) {
+          for (let x = 0; x < currentLevel.width; x += 1) {
+            const value = boardState[y][x];
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = "board-cell";
+            cell.dataset.value = String(value);
+            cell.textContent = value;
+            cell.title = `(${x}, ${y})`;
+            cell.addEventListener("click", () => handleBoardClick(x, y));
+            cell.addEventListener("mouseenter", () => handleBoardHover(x, y));
+            boardEl.appendChild(cell);
+            cellEls[y][x] = cell;
+          }
+        }
+
+        updatePreview();
+      }
+
+      function miniGrid(piece, options = {}) {
+        const cellSize = options.cellSize ?? 16;
+        const className = options.className ?? "mini";
+        const radius = Math.max(4, Math.round(cellSize * 0.28));
+        const wrap = document.createElement("div");
+        wrap.className = className;
+        wrap.style.gridTemplateColumns = `repeat(${piece.width}, ${cellSize}px)`;
+        wrap.style.gridTemplateRows = `repeat(${piece.height}, ${cellSize}px)`;
+
+        const filled = new Set(piece.cells.map(([x, y]) => `${x},${y}`));
+        for (let y = 0; y < piece.height; y += 1) {
+          for (let x = 0; x < piece.width; x += 1) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.width = `${cellSize}px`;
+            cell.style.height = `${cellSize}px`;
+            cell.style.borderRadius = `${radius}px`;
+            if (filled.has(`${x},${y}`)) cell.classList.add("on");
+            wrap.appendChild(cell);
+          }
+        }
+        return wrap;
+      }
+
+      function renderPieces() {
+        piecesGridEl.innerHTML = "";
+        if (!currentLevel) return;
+
+        syncCurrentPieceIndex();
+        const nextIndex = currentPieceIndex;
+
+        currentLevel.pieces.forEach((piece, index) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "piece-card";
+          card.tabIndex = -1;
+          card.setAttribute("aria-disabled", "true");
+
+          const isPlaced = Boolean(placements[index]);
+          const isCurrent = nextIndex !== -1 && !isPlaced && index === nextIndex;
+          if (isPlaced) card.classList.add("placed");
+          if (isCurrent) card.classList.add("current");
+
+          const title = document.createElement("div");
+          title.className = "piece-title";
+          const label = document.createElement("div");
+          label.textContent = `#${index}`;
+          const right = document.createElement("div");
+          right.className = "piece-right";
+          const dims = document.createElement("span");
+          dims.className = "piece-dims";
+          dims.textContent = `${piece.width}x${piece.height}`;
+          right.appendChild(dims);
+          if (isPlaced || isCurrent) {
+            const badge = document.createElement("span");
+            badge.className = "piece-badge";
+            badge.textContent = isPlaced ? "Placed" : "Next";
+            right.appendChild(badge);
+          }
+          title.appendChild(label);
+          title.appendChild(right);
+
+          card.appendChild(title);
+          card.appendChild(miniGrid(piece));
+          piecesGridEl.appendChild(card);
+        });
+      }
+
+      function renderHand() {
+        if (!currentLevel) {
+          handIndexEl.textContent = "#?";
+          handPieceEl.innerHTML = "";
+          return;
+        }
+
+        syncCurrentPieceIndex();
+        const nextIndex = currentPieceIndex;
+
+        if (nextIndex === -1) {
+          handIndexEl.textContent = "Done";
+          handPieceEl.innerHTML = '<div class="hand-empty">All placed</div>';
+          return;
+        }
+
+        const piece = currentLevel.pieces[nextIndex];
+        handIndexEl.textContent = `#${nextIndex}`;
+        handPieceEl.innerHTML = "";
+        handPieceEl.appendChild(miniGrid(piece, { cellSize: 18, className: "hand-piece" }));
+      }
+
+      function handleBoardClick(x, y) {
+        if (!currentLevel) return;
+        syncCurrentPieceIndex();
+        if (currentPieceIndex === -1) {
+          setStatus("All pieces are already placed.");
+          return;
+        }
+        const piece = currentLevel.pieces[currentPieceIndex];
+        if (!piece) return;
+        if (x + piece.width > currentLevel.width || y + piece.height > currentLevel.height) {
+          setStatus("Piece does not fit at that position.", true);
+          return;
+        }
+
+        history.push({ index: currentPieceIndex, previous: placements[currentPieceIndex] });
+        placements[currentPieceIndex] = { x, y };
+        hoverPlacement = { x, y };
+
+        syncCurrentPieceIndex();
+        recomputeBoard();
+        updateAttempt();
+        updateMeta();
+        renderBoard();
+        renderPieces();
+        renderHand();
+
+        if (boardSolved()) {
+          setStatus("Solved! Every cell is back to 0.");
+        } else {
+          setStatus(`Placed piece #${history[history.length - 1].index} at (${x}, ${y}).`);
+        }
+
+        undoBtn.disabled = history.length === 0;
+      }
+
+      function resetLevel() {
+        if (!currentLevel) return;
+        placements = Array(currentLevel.pieces.length).fill(null);
+        history = [];
+        currentPieceIndex = 0;
+        hoverPlacement = null;
+        syncCurrentPieceIndex();
+        recomputeBoard();
+        updateAttempt();
+        updateMeta();
+        renderBoard();
+        renderPieces();
+        renderHand();
+        setStatus("Level reset.");
+        undoBtn.disabled = true;
+      }
+
+      function undoMove() {
+        if (!history.length || !currentLevel) return;
+        const last = history.pop();
+        placements[last.index] = last.previous || null;
+        currentPieceIndex = last.index;
+        hoverPlacement = null;
+        syncCurrentPieceIndex();
+        recomputeBoard();
+        updateAttempt();
+        updateMeta();
+        renderBoard();
+        renderPieces();
+        renderHand();
+        setStatus(`Undo piece #${last.index}.`);
+        undoBtn.disabled = history.length === 0;
+      }
+
+      function loadLevelFromText(text) {
+        try {
+          currentLevel = parseLevel(text);
+        } catch (err) {
+          setStatus(err.message || String(err), true);
+          return;
+        }
+
+        initialBoard = cloneBoard(currentLevel.board);
+        placements = Array(currentLevel.pieces.length).fill(null);
+        history = [];
+        currentPieceIndex = 0;
+        hoverPlacement = null;
+
+        syncCurrentPieceIndex();
+        recomputeBoard();
+        updateAttempt();
+        updateMeta();
+        renderBoard();
+        renderPieces();
+        renderHand();
+
+        resetBtn.disabled = false;
+        undoBtn.disabled = true;
+        setStatus("Level parsed. Select a piece and click the board.");
+      }
+
+      async function loadLevelByNumber(n) {
+        const num = Number(n);
+        if (!num || num < 1) {
+          setStatus("Enter a valid level number.", true);
+          return;
+        }
+        try {
+          const res = await fetch(`levels/${num}.level`, { cache: "no-store" });
+          if (!res.ok) throw new Error(`Failed to load levels/${num}.level`);
+          const text = (await res.text()).trim();
+          levelInput.value = text;
+          loadLevelFromText(text);
+        } catch (err) {
+          setStatus(
+            "Could not fetch that level. If you are opening the file directly, paste the level instead.",
+            true
+          );
+        }
+      }
+
+      parseBtn.addEventListener("click", () => loadLevelFromText(levelInput.value));
+      resetBtn.addEventListener("click", resetLevel);
+      undoBtn.addEventListener("click", undoMove);
+      loadBtn.addEventListener("click", () => loadLevelByNumber(levelNumber.value));
+      boardEl.addEventListener("mouseleave", () => {
+        if (!hoverPlacement) return;
+        hoverPlacement = null;
+        updatePreview();
+      });
+
+      renderHand();
+
+      // Attempt to load level 1 when served over HTTP.
+      if (location.protocol.startsWith("http")) {
+        loadLevelByNumber(1);
+      } else {
+        setStatus("Paste a level string to begin.");
+      }
+    </script>
+  </body>
+</html>
