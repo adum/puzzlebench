@@ -8,5 +8,5 @@
 12/23/25,runaway,codex 5.2,30s,level 500
 12/23/25,runaway,opus 4.5,30s,level 500
 12/24/25,runaway,gemini 3 flash,30s,level 500
-1/27/26,modulo,gemini 3 flash,600s,level 39
+1/27/26,modulo,gemini 3 flash,600s,level 33
 1/29/26,modulo,codex 5.2,600s,level 42
