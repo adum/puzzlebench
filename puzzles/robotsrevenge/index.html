@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Robot's Revenge</title>
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/favicon-180.png" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <div class="brand">
+        <img
+          class="brand-icon"
+          src="./assets/icon_ui_64.png"
+          alt="Robot's Revenge icon"
+          width="32"
+          height="32"
+        />
+        <div class="brand-name">Robot's Revenge</div>
+      </div>
+      <section class="panel program-panel">
+        <section class="block program-block">
+          <div class="program-line-top">
+            <h2>Program</h2>
+            <div id="programStrip" class="program-strip" aria-label="Program tokens"></div>
+          </div>
+          <div class="program-line-bottom">
+            <div class="button-row five program-buttons">
+              <button id="addFBtn" class="secondary" title="Add Forward (F): move one cell forward; exits if stepping off the board.">+ ↑</button>
+              <button id="addLBtn" class="secondary turn-btn" title="Add Left (L): rotate 90 degrees counter-clockwise.">+ ↺</button>
+              <button id="addRBtn" class="secondary turn-btn" title="Add Right (R): rotate 90 degrees clockwise.">+ ↻</button>
+              <button id="addSBtn" class="secondary" title="Add Sense (S): if the cell ahead is blocked, run next instruction; otherwise skip one.">+ S</button>
+              <button id="addJBtn" class="secondary" title="Add Jump (J±n): move the instruction pointer by an offset.">+ J</button>
+            </div>
+            <div class="program-edit">
+              <div id="selectedInfo" class="selected-info">Selected: none</div>
+              <button id="deleteSelectedBtn" class="secondary" title="Delete the selected instruction.">Delete</button>
+            </div>
+            <div id="programSummary" class="summary program-summary">Length 0 / 14</div>
+            <div class="button-row triple program-actions">
+              <button id="clearProgramBtn" class="secondary" title="Remove all instructions from the editor.">Clear Program</button>
+              <button id="copyProgramBtn" class="secondary" title="Copy the current program text to the clipboard.">Copy</button>
+              <button id="pasteProgramBtn" class="secondary" title="Paste program text from the clipboard into the editor.">Paste</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <div class="main-row">
+        <main id="arena" class="arena">
+          <div id="boardWrap" class="board-wrap">
+            <div id="execCountdown" class="exec-countdown" aria-live="polite"></div>
+            <div id="board" class="board" aria-label="Puzzle board"></div>
+          </div>
+        </main>
+
+        <aside class="panel">
+          <section class="block">
+            <h2>Run Controls</h2>
+            <div class="control">
+              <label for="speedRange">Auto Run Delay (ms)</label>
+              <div class="pair">
+                <input type="range" id="speedRange" min="50" max="550" value="140" />
+                <input type="number" id="speedNumber" min="50" max="550" value="140" />
+              </div>
+            </div>
+            <div class="button-row">
+              <button id="stepBtn" class="secondary" title="Execute one instruction.">Step</button>
+              <button id="runBtn" title="Run continuously using the selected delay until stop, crash, or escape.">Auto Run</button>
+            </div>
+            <div class="button-row">
+              <button id="resetBtn" class="secondary" title="Reset robot position, facing, and execution state.">Reset Robot</button>
+              <button id="clearTrailBtn" class="secondary" title="Clear only the visual trail without resetting execution state.">Clear Trail</button>
+            </div>
+            <div id="status" class="status">Ready.</div>
+            <div id="runtimeMeta" class="meta"></div>
+            <div id="levelMeta" class="meta"></div>
+          </section>
+
+          <section class="block">
+            <h2>Generator</h2>
+            <div class="control">
+              <label for="sizeRange">Size (Square)</label>
+              <div class="pair">
+                <input type="range" id="sizeRange" min="6" max="18" value="11" />
+                <input type="number" id="sizeNumber" min="6" max="18" value="11" />
+              </div>
+            </div>
+            <div class="control">
+              <label for="densityRange">Block Density (%)</label>
+              <div class="pair">
+                <input type="range" id="densityRange" min="8" max="52" value="28" />
+                <input type="number" id="densityNumber" min="8" max="52" value="28" />
+              </div>
+            </div>
+            <div class="control">
+              <label for="solLenRange">Target Hidden Solver Length</label>
+              <div class="pair">
+                <input type="range" id="solLenRange" min="5" max="16" value="9" />
+                <input type="number" id="solLenNumber" min="5" max="16" value="9" />
+              </div>
+            </div>
+            <div class="control">
+              <label for="progLimitRange">Program Length Limit</label>
+              <div class="pair">
+                <input type="range" id="progLimitRange" min="4" max="128" value="14" />
+                <input type="number" id="progLimitNumber" min="4" max="128" value="14" />
+              </div>
+            </div>
+            <div class="control">
+              <label for="maxStepsRange">Execution Limit</label>
+              <div class="pair">
+                <input type="range" id="maxStepsRange" min="120" max="1500" value="420" />
+                <input type="number" id="maxStepsNumber" min="120" max="1500" value="420" />
+              </div>
+            </div>
+            <div class="button-row triple">
+              <button id="generateBtn" title="Create a new random level using the current generator settings.">Generate Level</button>
+              <button id="showSolutionBtn" class="secondary" title="Load the generated hidden solver into the program editor.">Load Hidden Solver</button>
+              <button id="loadLevelBtn" class="secondary" title="Import a .level file from disk.">Load Level</button>
+            </div>
+            <input id="loadLevelInput" type="file" accept=".level,text/plain" hidden />
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script src="./index.js"></script>
+  </body>
+</html>
