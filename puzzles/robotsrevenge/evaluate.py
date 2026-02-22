@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -39,33 +41,64 @@ def extract_solution_text(stdout: str) -> str:
     return lines[-1]
 
 
+def timestamp_now_utc() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def markdown_escape_cell(value: str) -> str:
+    return value.replace("`", "'").replace("|", "\\|")
+
+
+def ensure_test_log_header(path: Path) -> None:
+    if path.exists() and path.stat().st_size > 0:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "Automated benchmark run log.\n\n"
+        "| Date | Model/Solver | Timeout | Highest Passed | Mode | Command |\n"
+        "| --- | --- | --- | --- | --- | --- |\n",
+        encoding="utf-8",
+    )
+
+
+def append_test_log(
+    path: Path,
+    solver: str,
+    timeout: float,
+    highest_passed: int,
+    mode: str,
+    command: str,
+) -> None:
+    ensure_test_log_header(path)
+    timeout_text = "none" if timeout <= 0 else f"{timeout:g}s"
+    row = (
+        f"| {timestamp_now_utc()} "
+        f"| `{markdown_escape_cell(solver)}` "
+        f"| {markdown_escape_cell(timeout_text)} "
+        f"| {highest_passed} "
+        f"| {markdown_escape_cell(mode)} "
+        f"| `{markdown_escape_cell(command)}` |\n"
+    )
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(row)
+
+
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(
-        description="Meta solver: run a solver script over all SenseJump levels in a directory."
-    )
-    parser.add_argument(
-        "solver",
-        nargs="?",
-        default="solve_level.py",
-        help="Path to solver program (default: solve_level.py).",
-    )
-    parser.add_argument(
-        "--levels-dir",
-        default="levels",
-        help="Directory containing .level files (default: levels).",
-    )
-    parser.add_argument("--start", type=int, default=1, help="Starting numeric level (default: 1).")
-    parser.add_argument("--end", type=int, default=None, help="Ending numeric level.")
+    parser = argparse.ArgumentParser(description="Evaluate a Robot's Revenge solver.")
+    parser.add_argument("solver", help="Path to the solver program")
+    parser.add_argument("--levels-dir", default="levels", help="Directory containing .level files (default: levels).")
+    parser.add_argument("--start", type=int, default=1, help="Starting level number")
+    parser.add_argument("--end", type=int, default=None, help="Ending level number")
     parser.add_argument(
         "--stdin",
         action="store_true",
-        help="Pass level content on stdin instead of a level file path argument.",
+        help="Pass the level content on stdin instead of a file path argument.",
     )
     parser.add_argument(
         "--timeout",
         type=float,
-        default=0.0,
-        help="Per-level solver timeout in seconds, <=0 means no timeout (default: 0 = no timeout).",
+        default=600,
+        help="Timeout in seconds per level (default: 600)",
     )
     parser.add_argument(
         "--continue-on-fail",
@@ -77,6 +110,18 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="Print solver stderr even on pass.",
     )
+    parser.add_argument(
+        "--test-log",
+        default="test.md",
+        help="Markdown test log path to append benchmark rows (default: test.md).",
+    )
+    parser.add_argument(
+        "--append-test-log",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Append benchmark result row to --test-log (default: true).",
+    )
+
     args, solver_extra_args = parser.parse_known_args(argv)
     if solver_extra_args and solver_extra_args[0] == "--":
         solver_extra_args = solver_extra_args[1:]
@@ -115,8 +160,10 @@ def main(argv: list[str]) -> int:
 
     solved_count = 0
     failed_count = 0
+    highest_passed = 0
 
     for level_path in level_files:
+        level_num = level_number(level_path)
         try:
             level_content = level_path.read_text(encoding="utf-8").strip()
             level = core.parse_level(level_content)
@@ -141,14 +188,13 @@ def main(argv: list[str]) -> int:
 
         start = time.perf_counter()
         try:
-            timeout_value = None if args.timeout <= 0 else args.timeout
             process = subprocess.run(
                 cmd,
                 input=level_content if args.stdin else None,
                 capture_output=True,
                 text=True,
                 check=False,
-                timeout=timeout_value,
+                timeout=args.timeout,
             )
         except subprocess.TimeoutExpired:
             elapsed = time.perf_counter() - start
@@ -190,6 +236,8 @@ def main(argv: list[str]) -> int:
         ok, message, program, result = core.verify_program(level, solution_text)
         if ok and program is not None and result is not None:
             solved_count += 1
+            if level_num is not None:
+                highest_passed = max(highest_passed, level_num)
             print(f"PASS ({elapsed:.3f}s, len={len(program)}, steps={result.steps})")
             if args.show_stderr and process.stderr.strip():
                 print(f"  Solver stderr: {process.stderr.strip()}")
@@ -204,10 +252,30 @@ def main(argv: list[str]) -> int:
         if not args.continue_on_fail:
             break
 
-    print(
-        f"Summary: solved={solved_count} failed={failed_count} "
-        f"attempted={solved_count + failed_count}"
-    )
+    attempted_count = solved_count + failed_count
+    print(f"Summary: solved={solved_count} failed={failed_count} attempted={attempted_count}")
+
+    if args.append_test_log:
+        mode = ",".join(
+            [
+                "stdin" if args.stdin else "path",
+                "continue-on-fail" if args.continue_on_fail else "stop-on-fail",
+            ]
+        )
+        command = shlex.join(sys.argv)
+        try:
+            append_test_log(
+                path=Path(args.test_log),
+                solver=args.solver,
+                timeout=args.timeout,
+                highest_passed=highest_passed,
+                mode=mode,
+                command=command,
+            )
+            print(f"Appended benchmark row to {args.test_log} (highest_passed={highest_passed}).")
+        except OSError as exc:
+            print(f"Warning: could not append test log {args.test_log}: {exc}")
+
     return 0 if failed_count == 0 else 1
 
 
