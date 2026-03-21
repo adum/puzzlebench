@@ -5,8 +5,6 @@ Converted puzzle package for `pb_5.2codex/puzzles/robotsrevenge`.
 ## Included
 
 - `levels_public/` starter public corpus with the first 20 odd-numbered levels (`1..39`)
-- `external/final_rr.zip` source pack with all 412 levels plus private solutions
-- `external/final_rr_levels_only.zip` stripped public artifact with `levels/*.level` only
 - `rules.md` puzzle rules and level format
 - `sensejump_core.py` parser/simulator core
 - `solve_level.py`, `solve_levels.py`, `evaluate.py`, `evaluate_full.py`
@@ -17,6 +15,7 @@ Converted puzzle package for `pb_5.2codex/puzzles/robotsrevenge`.
 ## Public vs private levels
 
 - Fresh checkout: `levels_public/` contains 20 starter odd levels and works immediately with the public evaluator.
+- Local working files under `external/` are intentionally not tracked by git.
 - After `./download_full_levels.sh`: `levels_public/` is replaced with the full 206 odd/public levels, and the 206 even/private levels are stored locally in `levels_secret_even.tar.enc`.
 - Full evaluation uses `evaluate_full.py`, which decrypts the even levels into a temporary directory for that run only.
 
