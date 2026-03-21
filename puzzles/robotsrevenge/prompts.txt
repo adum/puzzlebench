@@ -1,0 +1,20 @@
+your job is to write a program to solve the Robot's Revenge levels up to the final boards, which reach 200 by 200. this will require clever algorithms, repeated experimentation, and many iterations.
+
+evaluation workflow:
+- use `./evaluate.py <solver_program>` for normal development runs. this evaluates only public odd-numbered levels from `levels_public`.
+- on a fresh checkout, `levels_public` contains only the 20 starter odd levels: `1, 3, ..., 39`.
+- after running `./download_full_levels.sh`, `levels_public` is replaced with the full 206 odd/public levels and the even/private levels are stored in `levels_secret_even.tar.enc`.
+- use `./evaluate_full.py <solver_program>` only for user-gated full benchmark runs. this prompts for a password and evaluates both odd and even levels.
+- do not run `./evaluate_full.py` unless the user explicitly asks for a full benchmark run.
+- do not try to access or inspect even-level content directly. do not decrypt or expose hidden levels unless explicitly running the full evaluation command for a benchmark run.
+- do not modify benchmark assets or harness during solver iteration unless explicitly asked. this includes `levels_public`, `levels_secret_even.tar.enc`, `download_full_levels.sh`, `evaluate.py`, `evaluate_full.py`, and `results.md`.
+
+reporting workflow:
+- after any significant improvement, run evaluation from the beginning (`--start 1`) and report that result only, not a cherry-picked later range.
+- evaluation scripts automatically append simple tabular results to `results.md` with columns: date, solver/model, timeout, highest passed, mode, command.
+- keep `results.md` append-only from evaluator output. do not manually edit benchmark rows.
+- if you discuss score or progress, cite runs that are in `results.md`.
+- include reproducibility parameters in any report summary: exact command used, timeout, and start/end range.
+- always include the first failing level and one concrete failure reason from evaluator output, or state complete pass for the tested range.
+
+this codebase is intended as a benchmark suite. do not cheat, do not look for external solutions, do not cache level-specific answers, and do not hardcode solutions for specific levels.
