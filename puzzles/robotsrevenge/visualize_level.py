@@ -3,7 +3,7 @@
 Visualize a SenseJump level in the terminal.
 
 Usage:
-  python3 visualize_level.py levels/1.level
+  python3 visualize_level.py levels_public/1.level
   python3 visualize_level.py "v=2&x=11&y=11&board=...,...&sx=5&sy=5&plim=14&elim=420"
 """
 

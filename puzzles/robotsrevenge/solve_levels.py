@@ -51,8 +51,8 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument(
         "--levels-dir",
-        default="levels",
-        help="Directory containing .level files (default: levels).",
+        default="levels_public",
+        help="Directory containing .level files (default: levels_public).",
     )
     parser.add_argument("--start", type=int, default=1, help="Starting numeric level (default: 1).")
     parser.add_argument("--end", type=int, default=None, help="Ending numeric level.")

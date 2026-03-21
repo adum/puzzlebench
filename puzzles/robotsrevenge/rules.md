@@ -61,31 +61,42 @@
   - `min_direction_types_to_exit`: fewest distinct movement directions (N/E/S/W) needed to exit.
   - `generator`: seed/settings metadata.
 
+## Public/Private Layout
+- The repo ships with `levels_public/` containing 20 starter odd levels: `1, 3, ..., 39`.
+- Running `./download_full_levels.sh` replaces that starter set with the full odd/public corpus and writes the even/private levels to `levels_secret_even.tar.enc`.
+- `evaluate.py` reads only `levels_public/`.
+- `evaluate_full.py` prompts for the password, decrypts the even/private archive into a temporary directory, and evaluates odd plus even levels together.
+- Benchmark runs are appended to `results.md`.
+
 ## Tooling
 - Generate one level:
-  - `python3 generate_level.py 12 --level-out levels/12.level --solution-out solutions/12.solution.json`
+  - `python3 generate_level.py 12 --level-out levels_public/12.level --solution-out solutions/12.solution.json`
 - By default, generators reject candidate levels whose hidden solution contains a straight run of `10` or more forward moves in one direction.
   - Tune or disable with `--max-straight-run N` (`0` disables).
 - By default, generators require movement-only escape paths to use at least `3` distinct directions.
   - Tune with `--min-direction-types-to-exit N` (`1..4`, default: `3`).
 - Generate a range:
-  - `python3 generate_levels.py 50 --out-dir levels --solution-dir solutions`
-  - `python3 generate_levels.py 50 --progressive-difficulty --size 9 --out-dir levels --solution-dir solutions`
-  - `python3 generate_levels.py 1000 --progressive-difficulty --progressive-intensity 10 --size 9 --out-dir levels --solution-dir solutions`
+  - `python3 generate_levels.py 50 --out-dir levels_public --solution-dir solutions`
+  - `python3 generate_levels.py 50 --progressive-difficulty --size 9 --out-dir levels_public --solution-dir solutions`
+  - `python3 generate_levels.py 1000 --progressive-difficulty --progressive-intensity 10 --size 9 --out-dir levels_public --solution-dir solutions`
   - Optional: `--progressive-max-size N` to cap progressive board growth (default: `128`).
   - Note: `generate_levels.py` always writes square boards (`width == height`).
 - Verify a submission:
-  - `python3 verify_level.py levels/12.level "F S J+2 R J-1"`
+  - `python3 verify_level.py levels_public/12.level "F S J+2 R J-1"`
 - Solve with brute force:
-  - `python3 solve_level.py levels/12.level --timeout 60 --max-programs 5000000`
+  - `python3 solve_level.py levels_public/12.level --timeout 60 --max-programs 5000000`
   - Add `--verbose` to print a traced board (path plus sensed blocked cells).
-  - Optional shortcut: `python3 solve_level.py levels/12.level --solution-file solutions/12.solution.json`
+  - Optional shortcut: `python3 solve_level.py levels_public/12.level --solution-file solutions/12.solution.json`
     to evaluate only that provided solution (JSON `solution_program` or plain text file).
 - Solve a directory in order (meta solver):
-  - `python3 solve_levels.py solve_level.py --levels-dir levels --start 1 --end 50`
-  - Extra args are forwarded to solver, e.g. `python3 solve_levels.py solve_level.py --levels-dir levels -- --max-length 8 --timeout 20`
+  - `python3 solve_levels.py solve_level.py --levels-dir levels_public --start 1 --end 39`
+  - Extra args are forwarded to solver, e.g. `python3 solve_levels.py solve_level.py --levels-dir levels_public -- --max-length 8 --timeout 20`
+- Evaluate the public odd levels:
+  - `python3 evaluate.py solve_level.py --start 1 --end 39`
+- Evaluate the full odd + even corpus after downloading:
+  - `python3 evaluate_full.py solve_level.py --start 1 --end 412`
 - Verify official hidden solution too:
-  - `python3 verify_level.py levels/12.level "F S J+2 R J-1" --solution-file solutions/12.solution.json`
-  - `python3 verify_level.py levels/12.level --answer-dir solutions --official-only`
+  - `python3 verify_level.py levels_public/12.level "F S J+2 R J-1" --solution-file solutions/12.solution.json`
+  - `python3 verify_level.py levels_public/12.level --answer-dir solutions --official-only`
 - Draw a level in terminal:
-  - `python3 visualize_level.py levels/12.level`
+  - `python3 visualize_level.py levels_public/12.level`
