@@ -10,3 +10,4 @@
 1/27/26,modulo,gemini 3 flash,600s,level 33
 1/29/26,modulo,codex 5.2,600s,level 43
 2/3/26,modulo,opus 4.5,600s,level 37
+3/23/26,robotsrevenge,gemini 3 pro,600s,level 412
