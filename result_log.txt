@@ -11,3 +11,5 @@
 1/29/26,modulo,codex 5.2,600s,level 43
 2/3/26,modulo,opus 4.5,600s,level 37
 3/23/26,robotsrevenge,gemini 3 pro,600s,level 412
+3/28/26,robotsrevenge,chatgpt 5.4,600s,level 133
+3/28/26,robotsrevenge,opus 4.6,600s,level 337
