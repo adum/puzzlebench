@@ -15,3 +15,18 @@ Each puzzle should contain the following:
  - an evaluate.py script to run a solver (such as the sample brute force solver) over multiple levels with various options
 
 We include a standard prompt in prompt.txt that exhorts an agent to solve as many levels as they can in a puzzle. This is general and does not give any domain specific hints.
+
+## Automated benchmarks
+
+Robot's Revenge has a container-isolated runner for Codex, Claude Code, and
+OpenCode models, with continuation rounds, batch trials, score-only private
+evaluation feedback, and reproducible run records. See
+[the benchmark guide](docs/benchmarking.md) for setup, authentication, and isolation.
+
+```sh
+python3 benchmark.py build
+python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID
+```
+
+The default is a public-only run. Install the corpus with
+`python3 benchmark.py prepare --full` and pass `--full` to authorize a full evaluation.

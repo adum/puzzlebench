@@ -1,6 +1,15 @@
 # Robot's Revenge Puzzle
 
-Converted puzzle package for `pb_5.2codex/puzzles/robotsrevenge`.
+## Automated model runs
+
+From the repository root, use `python3 benchmark.py run --harness codex --model MODEL_ID`
+to develop and evaluate a solver automatically in isolated containers. Claude Code
+and OpenCode are also supported. See [the benchmark guide](../../docs/benchmarking.md)
+for full/private evaluation, model matrices, credentials, and security boundaries.
+
+The commands below are the original manual solver workflow. Those evaluators run
+solver programs directly on your machine; use the automated runner for isolated
+execution of model-generated code.
 
 ## Included
 

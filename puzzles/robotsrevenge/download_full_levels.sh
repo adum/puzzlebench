@@ -82,7 +82,8 @@ while true; do
   break
 done
 
-tar -C "${even_tmp_dir}" -cf "${even_tar_path}" .
+# Keep macOS AppleDouble metadata out of the private level archive.
+COPYFILE_DISABLE=1 tar -C "${even_tmp_dir}" -cf "${even_tar_path}" .
 printf '%s\n' "${encrypt_password}" | \
   openssl enc -aes-256-cbc -pbkdf2 -salt -pass stdin -in "${even_tar_path}" -out "${encrypted_path}"
 unset encrypt_password

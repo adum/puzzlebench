@@ -1,0 +1,28 @@
+# Copy this file and use exact model IDs supported by your authenticated provider.
+# Each entry starts a separate experiment with fresh model and solver containers.
+[defaults]
+full = false
+level_timeout = 600
+round_timeout = 43200
+timeout = 43200
+max_rounds = 20
+stale_limit = 3
+cpus = 4
+memory = "4g"
+
+[[runs]]
+harness = "codex"
+model = "replace-with-openai-model-id"
+effort = "high"
+
+[[runs]]
+harness = "claude"
+model = "replace-with-anthropic-model-id"
+
+[[runs]]
+harness = "opencode"
+model = "google/replace-with-gemini-model-id"
+
+[[runs]]
+harness = "opencode"
+model = "openrouter/replace-with-provider/model-id"

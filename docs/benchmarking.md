@@ -1,0 +1,245 @@
+# Automated Robot's Revenge benchmarks
+
+The runner uses a selected model to improve a solver, evaluates the exact submitted
+files, and repeats until the score stops improving or a budget is exhausted. It is
+self-contained: neither Puzzle Runner nor Tsumego Bench needs to be installed.
+Python 3.11+, Docker Desktop or Docker Engine, and provider authentication are required.
+On Windows, use WSL2 and Linux containers.
+
+## Setup
+
+From the repository root, with Docker running:
+
+```sh
+python3 benchmark.py build
+python3 benchmark.py doctor
+```
+
+The image includes pinned Codex, Claude Code, and OpenCode versions, plus Python,
+Node, g++, make, git, and curl. To change a harness version deliberately:
+
+```sh
+docker build -f containers/benchmark.Dockerfile -t puzzlebench:local \
+  --build-arg CODEX_VERSION=VERSION .
+```
+
+The selected image's immutable ID and the CLI version are recorded with each run.
+Runs use that image ID even if its tag changes later. The base-image tag and system
+packages are not a fully locked dependency set; retain the image to reproduce a run.
+Use the same image and resource settings when comparing models.
+The adapter supports both OpenCode v1 flags and v2's `--auto` / `model#effort` form;
+the default image pins the tested v1 release.
+
+## Select a model and harness
+
+Use an exact model ID supported by your account. No model alias is substituted.
+
+```sh
+python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID --effort high
+python3 benchmark.py run --harness claude --model ANTHROPIC_MODEL_ID
+python3 benchmark.py run --harness opencode --model google/GEMINI_MODEL_ID
+python3 benchmark.py run --harness opencode --model openrouter/PROVIDER/MODEL_ID
+```
+
+Codex uses `OPENAI_API_KEY`, or copies only the existing Codex login's `auth.json`
+into its temporary container home. Use `--auth-file PATH` to select another login.
+User settings, rules, hooks, skills, and session history are not copied.
+
+Claude uses `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`. OpenCode uses the
+selected provider's environment credential: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+`GOOGLE_GENERATIVE_AI_API_KEY` / `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
+`XAI_API_KEY`, `DEEPSEEK_API_KEY`, or `MISTRAL_API_KEY`. A Google or xAI model can
+therefore be tested through OpenCode without a separate Gemini or Grok CLI adapter.
+Unknown providers are rejected until an explicit endpoint allowlist is added.
+
+The harness receives only its selected provider's credentials. These credentials
+must be available to the CLI inside the agent container; that container is not a
+secret vault against a malicious agent. Use a dedicated, revocable benchmark
+credential with a spending limit. Logs redact the supplied credential strings,
+but do not automatically publish logs or generated files. A copied OAuth login
+can expire or be refreshed only inside its temporary container.
+
+## Public and full evaluation
+
+By default, a run evaluates the checked-in 20 odd-numbered public levels, 1 through
+39. It is explicitly labeled `public-only` and is not comparable to a full score.
+To install the full corpus:
+
+```sh
+python3 benchmark.py prepare --full
+```
+
+This invokes the existing level downloader in `.puzzlebench/data/robotsrevenge/`,
+generates an encryption password, and stores it locally with owner-only permissions.
+It installs 206 public odd levels and an encrypted archive of 206 private even levels.
+The data directory and password are excluded from Git and are never mounted in the
+agent container. The existing checked-in starter levels are not replaced.
+
+Then authorize a full benchmark explicitly:
+
+```sh
+python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID --full
+```
+
+For an existing encrypted pack, supply `--levels-dir PATH_TO_PUBLIC_LEVELS`,
+`--secret-archive PATH`, and set `PUZZLEBENCH_FULL_PASSWORD`. An alternative variable
+name can be selected with `--password-env NAME`; passwords are never CLI arguments.
+
+Private levels are decrypted into a host-owned temporary directory. The trusted
+runner sends just the current level to the submitted solver on stdin. It never
+mounts the private corpus, archive, or password into either agent or solver containers.
+The trusted verifier runs outside the submitted workspace. Model continuations
+receive only the last score, best score, and no-progress count, without private
+checker traces, level contents, candidate programs, or failure details.
+
+Every evaluation starts at level 1 and stops at the first failure. Missing levels
+are an error, and skipped prefixes never receive assumed credit. There is no
+resume-from-best shortcut. The final score is the best verified round and includes
+a hash of the exact solver snapshot used for that round.
+
+## Budgets and continuation
+
+Defaults:
+
+| Setting | Default |
+| --- | --- |
+| Overall active wall time (`--timeout`) | 43,200 seconds |
+| Agent time per round, including retries (`--round-timeout`) | 43,200 seconds (12 hours) |
+| Agent quiet-output limit (`--idle-timeout`) | Disabled (0) |
+| Solver time per level (`--level-timeout`) | 600 seconds |
+| Evaluation time per round (`--evaluation-timeout`) | 3,600 seconds |
+| Maximum rounds (`--max-rounds`) | 20 |
+| Consecutive rounds without improvement (`--stale-limit`) | 3 |
+| Attempts per agent round (`--max-attempts`) | 5 |
+| CPU limit (`--cpus`) | 4 |
+| Memory limit (`--memory`) | 4 GiB |
+| Each writable tmpfs (`--workspace-mb`) | 1,024 MiB |
+
+Each round starts a fresh CLI session and restores the preceding solver files.
+This makes continuation behavior consistent across harnesses and avoids context
+growth; files and compact score feedback carry progress forward. It intentionally
+does not reproduce a harness's interactive conversation-resume behavior.
+Progress heartbeats update the terminal and saved status every 30 seconds. Quiet
+tool calls are not treated as stalled by default; an optional idle cutoff can be
+enabled explicitly without removing the overall and per-round wall-clock limits.
+
+Recognized transient service/transport errors receive exponential backoff (15,
+30, 60, 120 seconds). Authentication, unsupported models/effort, and other permanent
+errors stop immediately. Structured error events are checked even when a CLI exits
+zero. Recognized response-length boundaries submit the partial workspace for
+evaluation and continue in the next round. Timeouts and excessive output stop the
+run rather than silently changing its conditions. All model calls, retries, waits,
+and evaluations count toward the active run budget. Docker setup/cleanup may add
+a small overhead beyond a phase deadline.
+
+## Batch trials and saved runs
+
+Edit the placeholder model IDs in `benchmark.example.toml`, then:
+
+```sh
+python3 benchmark.py batch benchmark.example.toml
+python3 benchmark.py status
+python3 benchmark.py summary
+```
+
+The matrix has `[defaults]` and one `[[runs]]` table per independent trial. Add
+repeated entries for repeated attempts or compare the same provider through
+different harnesses. Entries run sequentially with fresh containers and snapshots.
+A failed trial is recorded and does not discard other trials.
+
+All outputs go under `.puzzlebench/runs/RUN_ID/`:
+
+- `run.json`: model, effort, image and source provenance, input/corpus hashes,
+  conditions, round scores, stop reason, and raw reported usage records.
+- `status.md`: live phase, round, best/last score, and no-progress count.
+- `round-NNN/prompt.md`: exact model input for the round.
+- `round-NNN/attempt-NN/`: events, stderr, invocation outcome, and solver snapshot/hash.
+- `round-NNN/evaluation/`: per-level stdout/stderr and trusted `evaluation.json`.
+- `.puzzlebench/summary.md`: derived comparison table, with full/public-only modes
+  distinguished and failed launches marked `unscored`.
+
+Resume an interrupted or failed run with its original conditions and remaining
+time budget:
+
+```sh
+python3 benchmark.py resume .puzzlebench/runs/RUN_ID
+```
+
+Original image and input/solver hashes are checked. Completed runs cannot be
+extended past their stopping condition; start another independent trial instead.
+For a full run, resuming authorizes the same full/private evaluation condition.
+Concurrent controllers of the same run are rejected. After a forced kill, elapsed
+wall time since the saved start is charged conservatively, including downtime.
+
+To explicitly change an older run's agent timeout while preserving its saved solver:
+
+```sh
+python3 benchmark.py resume .puzzlebench/runs/RUN_ID --round-timeout 43200
+```
+
+The previous and new limits are retained in `run.json` under `condition_changes`.
+Without that flag, resume keeps the original limit. A resumed call is still bounded
+by the remaining overall run budget; changing the round limit does not reset time
+already consumed or extend the overall 12-hour budget.
+
+Re-evaluate the saved best solver without invoking a model:
+
+```sh
+python3 benchmark.py evaluate .puzzlebench/runs/RUN_ID
+python3 benchmark.py evaluate .puzzlebench/runs/FULL_RUN_ID --full
+```
+
+Re-evaluation writes a separate record. It does not rewrite the original score.
+Historical `result_log.txt`, `results_table.md`, and the legacy puzzle `results.md`
+remain separate; promoting a new result to them is deliberate.
+
+## Isolation and limitations
+
+Both generation and solver execution require Docker; there is no host-execution
+fallback. Containers run as a non-root user, drop all capabilities, disable privilege
+escalation, use a read-only root filesystem, and have CPU, memory, process, output,
+and writable-filesystem limits. They never receive a Docker socket or a host-write
+mount. Their only host mount is a read-only snapshot of selected public benchmark
+files. Solver exports reject traversal paths, links, special files, duplicates,
+oversized archives, and excessive file counts before anything is evaluated.
+
+The agent's network is internal-only. A separate credential-free CONNECT proxy is
+the sole egress path and accepts only HTTPS connections to exact inference hosts
+for the selected provider. It rejects private, loopback, and link-local resolved
+addresses and connects to the checked IP. General web/MCP tools and customizations
+are disabled. Provider endpoints remain communication channels; this is not a
+defense against malicious use of an authorized provider account. Inference hosts
+may need updating when provider transports change; unknown destinations fail closed.
+
+Evaluation uses a separate `--network none` container with no provider credentials.
+Its mutable filesystem is fresh per round. The same container runs successive
+levels in that evaluation, so compilation and general intermediate computations
+can be reused. Build time counts toward the level timeout. The submission contract
+is an executable `./run_solver` reading a level on stdin and printing its program
+on the last stdout line. It must build from its saved sources if necessary.
+
+The runner terminates background agent/helper processes before exporting snapshots and removes containers
+and per-trial networks on success, failure, timeout, or Ctrl+C. A forced host kill or
+Docker crash cannot run cleanup; inspect `docker ps -a --filter name=pb-` and
+`docker network ls --filter name=pb-` before manually removing orphaned resources.
+Docker isolation shares the host kernel (or Docker Desktop's VM); it is not an
+independent physical security boundary.
+
+The overall structure carries over Puzzle Runner's iteration, score-only feedback,
+and status records, and Tsumego Bench's explicit harness/model conditions, input
+snapshots, event logs, and permanent/transient failure distinction. Permission
+bypass is confined to the externally isolated containers, rather than depending
+on prompt instructions or post-hoc file hashes to protect the host. Codex automation
+options are documented in the [official CLI reference](https://developers.openai.com/codex/cli/reference).
+The reference revisions inspected were Puzzle Runner `cf76246` and Tsumego Bench `6629468`.
+
+## Verification
+
+```sh
+python3 -m unittest discover -s tests -v
+PUZZLEBENCH_DOCKER_TESTS=1 python3 -m unittest discover -s tests -v
+```
+
+The Docker tests use synthetic levels and a stand-in model command. They check
+real filesystem/network restrictions, the inference proxy, CLI startup, safe snapshot
+export, and the complete develop/evaluate/record loop without paid model calls.
