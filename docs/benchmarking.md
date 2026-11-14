@@ -15,6 +15,14 @@ python3 benchmark.py build
 python3 benchmark.py doctor
 ```
 
+For Claude, also check its nested sandbox before starting a model run:
+
+```sh
+python3 benchmark.py doctor --harness claude
+```
+
+This checks the installed CLI and bubblewrap runtime without credentials or a model call.
+
 The image includes pinned Codex, Claude Code, and OpenCode versions, plus Python,
 Node, g++, make, git, and curl. To change a harness version deliberately:
 
@@ -26,6 +34,11 @@ docker build -f containers/benchmark.Dockerfile -t puzzlebench:local \
 The selected image's immutable ID and the CLI version are recorded with each run.
 Runs use that image ID even if its tag changes later. The base-image tag and system
 packages are not a fully locked dependency set; retain the image to reproduce a run.
+The default image pins Claude Code 2.1.325. Opus 5.5 requires 2.1.280 or newer;
+the runner checks this before invoking the model. Running `claude update` on the
+host does not update the container. After changing the Dockerfile version, run
+`python3 benchmark.py build`, confirm it with `python3 benchmark.py doctor --harness claude`,
+and start a fresh run rather than resuming a run pinned to the old image.
 Use the same image and resource settings when comparing models.
 The adapter supports both OpenCode v1 flags and v2's `--auto` / `model#effort` form;
 the default image pins the tested v1 release.
@@ -203,6 +216,34 @@ mount. Their only host mount is a read-only snapshot of selected public benchmar
 files. Solver exports reject traversal paths, links, special files, duplicates,
 oversized archives, and excessive file counts before anything is evaluated.
 
+Claude agent containers additionally use `containers/claude-seccomp.json`. It is
+derived from the [Moby v24.0.2 default profile](https://github.com/moby/moby/blob/v24.0.2/profiles/seccomp/default.json)
+with two added allow rules: `clone` when `CLONE_NEWUSER` is present, and
+`unshare`, `mount`, `umount2`, `pivot_root`, and `setns`. The upstream profile is
+covered by the Apache 2.0 license in `containers/MOBY-LICENSE`; all baseline rules
+are retained. Its upstream file SHA-256 is
+`de975c90f9e21d5b887a78c081d46ac483064d1f1942a682ccc1516f52afa921`.
+
+These exceptions apply only to Claude's agent container. The inference proxy,
+solver evaluator, Codex, and OpenCode retain Docker's default seccomp policy.
+Claude still runs non-root with capabilities dropped, no privilege escalation,
+read-only host mounts, and resource limits. The scoped policy is copied into the
+run directory and hashed in `run.json`; resume rejects policy or setting changes.
+
+Claude's built-in Bash sandbox is required, and credential scrubbing stays enabled.
+Its Docker-compatible nested mode reuses the container's `/proc`, reducing inner
+process hiding. The bind preserves Docker's existing protected `/proc` submounts;
+it permits the per-process namespace setup writes needed by Claude's credential
+scrubber. The image-owned `claude-bwrap` adapter applies that same approved
+mapping to the standalone credential wrapper, which otherwise still requests a
+fresh `/proc` on the pinned CLI version. It preserves other sandbox arguments and
+fails closed on unsupported argument forms. The ordinary `/usr/bin/bwrap` binary
+is unchanged. Explicit tool permissions replace Claude's permission-bypass flag.
+See [Anthropic's nested-sandbox guidance](https://code.claude.com/docs/en/sandboxing#bubblewrap-fails-to-start-inside-a-container).
+
+If a Claude run failed with the older image, rebuild and start a fresh run rather
+than resuming it: existing runs pin their original image ID and sandbox conditions.
+
 The agent's network is internal-only. A separate credential-free CONNECT proxy is
 the sole egress path and accepts only HTTPS connections to exact inference hosts
 for the selected provider. It rejects private, loopback, and link-local resolved
@@ -240,6 +281,9 @@ python3 -m unittest discover -s tests -v
 PUZZLEBENCH_DOCKER_TESTS=1 python3 -m unittest discover -s tests -v
 ```
 
-The Docker tests use synthetic levels and a stand-in model command. They check
+The Docker tests use synthetic levels and stand-in model commands. They check
 real filesystem/network restrictions, the inference proxy, CLI startup, safe snapshot
 export, and the complete develop/evaluate/record loop without paid model calls.
+The Claude-specific test runs the real CLI against a loopback-only fake Messages
+API and verifies that its Bash subprocess executes with credentials scrubbed and
+that the requested model ID and high effort reach the API transport.

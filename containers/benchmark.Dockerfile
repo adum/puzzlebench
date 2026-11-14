@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim
 
 ARG CODEX_VERSION=0.162.1
-ARG CLAUDE_VERSION=2.1.257
+ARG CLAUDE_VERSION=2.1.325
 ARG OPENCODE_VERSION=1.15.10
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,8 +11,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
        @anthropic-ai/claude-code@${CLAUDE_VERSION} opencode-ai@${OPENCODE_VERSION} \
     && npm cache clean --force
 
+# Claude's credential scrubber needs its Linux subprocess sandbox runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap socat \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY puzzlebench/proxy.py /opt/puzzlebench/proxy.py
-RUN mkdir -p /workspace /bench /home/bench
+COPY puzzlebench/bwrap.py /opt/puzzlebench/claude-bwrap
+RUN chmod 0555 /opt/puzzlebench/claude-bwrap \
+    && mkdir -p /workspace /bench /home/bench /etc/claude-code \
+    && printf '%s\n' '{"sandbox":{"bwrapPath":"/opt/puzzlebench/claude-bwrap"}}' \
+       > /etc/claude-code/managed-settings.json
 ENV HOME=/home/bench PYTHONPATH=/bench PYTHONDONTWRITEBYTECODE=1 \
     NODE_USE_ENV_PROXY=1 NO_COLOR=1
 WORKDIR /workspace

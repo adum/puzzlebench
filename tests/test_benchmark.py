@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import os
 import shutil
@@ -15,6 +16,7 @@ from unittest import mock
 
 from puzzlebench import cli, evaluation, harnesses, proxy, runner, sandbox
 from puzzlebench.process import Result, run_process
+from puzzlebench.bwrap import nested_arguments
 
 
 SIMPLE_LEVEL = "v=2&id=1&x=1&y=1&board=.&sx=0&sy=0&plim=2&elim=10"
@@ -141,6 +143,52 @@ class HarnessTests(unittest.TestCase):
             self.assertIn(option, command)
             self.assertEqual(stdin, None if name == "opencode" else "task")
 
+    def test_claude_uses_explicit_permissions_and_keeps_credential_scrubbing(self):
+        harness = harnesses.Harness("claude", "claude-opus-5-5", "high")
+        command, _ = harness.command("task")
+        self.assertNotIn("--dangerously-skip-permissions", command)
+        self.assertEqual(command[command.index("--allowedTools") + 1], "Read,Write,Edit,Glob,Grep,Bash")
+        settings = json.loads(command[command.index("--settings") + 1])
+        self.assertEqual(settings, harnesses.claude_settings())
+        self.assertTrue(settings["sandbox"]["enabled"])
+        self.assertTrue(settings["sandbox"]["failIfUnavailable"])
+        self.assertFalse(settings["sandbox"]["allowUnsandboxedCommands"])
+        self.assertTrue(settings["sandbox"]["enableWeakerNestedSandbox"])
+        self.assertEqual(harness.environment()["CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"], "1")
+
+    def test_claude_preflight_fails_closed_on_missing_or_blocked_runtime(self):
+        docker = mock.Mock()
+        docker.call.side_effect = sandbox.BenchmarkError("missing runtime")
+        with self.assertRaisesRegex(sandbox.BenchmarkError, "rebuild|rebuilt"):
+            harnesses.Harness("claude", "model").preflight(docker, "container")
+        docker.call.side_effect = ["", "bubblewrap 0.8.0", sandbox.BenchmarkError("namespace blocked")]
+        with self.assertRaisesRegex(sandbox.BenchmarkError, "scrubbing remains enabled"):
+            harnesses.Harness("claude", "model").preflight(docker, "container")
+        docker.reset_mock()
+        harnesses.Harness("codex", "model").preflight(docker, "container")
+        docker.call.assert_not_called()
+
+    def test_claude_rejects_outdated_container_before_model_invocation(self):
+        harness = harnesses.Harness("claude", "claude-opus-5-5", "high")
+        for version in ("2.1.257 (Claude Code)", "2.1.279 (Claude Code)", "unknown"):
+            with self.subTest(version=version), self.assertRaisesRegex(sandbox.BenchmarkError, "benchmark.py build"):
+                harness.command("task", version=version)
+        for version in ("2.1.280 (Claude Code)", "2.1.325 (Claude Code)", "2.10.0 (Claude Code)", "3.0.0 (Claude Code)"):
+            with self.subTest(version=version):
+                command, _ = harness.command("task", version=version)
+                self.assertEqual(command[command.index("--model") + 1], "claude-opus-5-5")
+        harnesses.Harness("claude", "other-model").command("task", version="2.1.257 (Claude Code)")
+
+    def test_default_claude_image_supports_opus_5_5(self):
+        dockerfile = (Path(__file__).resolve().parents[1] / "containers/benchmark.Dockerfile").read_text()
+        pin = next(line.split("=", 1)[1] for line in dockerfile.splitlines() if line.startswith("ARG CLAUDE_VERSION="))
+        self.assertGreaterEqual(tuple(map(int, pin.split("."))), harnesses.CLAUDE_MODEL_MINIMUMS["claude-opus-5-5"])
+
+    def test_claude_server_version_rejection_is_not_retried(self):
+        error = {"type": "result", "is_error": True,
+                 "result": "API Error: 400 Claude Code 2.1.257 does not support this model; version 2.1.280 or newer is required."}
+        self.assertEqual(harnesses.failure_kind(json.dumps(error), "", 0), "configuration_error")
+
     def test_no_cross_provider_credentials(self):
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "openai-secret", "ANTHROPIC_API_KEY": "other-secret",
                                           "HOME_SECRET": "host-secret"}, clear=True):
@@ -169,6 +217,14 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(harnesses.failure_kind('{"type":"result","is_error":true,"result":"rate limit"}', "", 0), "transient_error")
         self.assertIsNone(harnesses.failure_kind('{"type":"result","is_error":false}', "", 0))
         self.assertEqual(harnesses.failure_kind("", "unknown failure", 1), "harness_error")
+
+    def test_failure_detail_extracts_missing_runtime_error_from_stack_trace(self):
+        message = 'error: bubblewrap is required for subprocess env scrubbing and isolation.'
+        stderr = 'bundled JavaScript source\n\n' + message + '\n at sandbox.js:11\n\nBun v1.4.1 (Linux arm64)\n'
+        self.assertEqual(harnesses.failure_detail('', stderr), message)
+        self.assertEqual(harnesses.failure_detail('{"type":"error","error":{"message":"Bad credentials"}}', ''), 'Bad credentials')
+        self.assertTrue(harnesses.failure_detail('', ''))
+        self.assertLessEqual(len(harnesses.failure_detail('', 'error: ' + 'x' * 2000)), 1000)
 
     def test_auth_log_redaction_includes_nested_oauth_tokens(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -358,6 +414,64 @@ class DockerPolicyTests(unittest.TestCase):
         self.assertNotIn("secret", agent)
         self.assertIn("OPENAI_API_KEY", agent)
 
+    def test_claude_seccomp_applies_only_to_the_agent(self):
+        docker = self.docker()
+        with mock.patch.object(docker, "call", return_value="7") as call, mock.patch.object(docker, "upload"):
+            docker.agent(Path("/public"), Path("/solver"), hosts=["api.anthropic.com"], environment={},
+                         seccomp_profile=Path("/policy/claude-seccomp.json"))
+            docker.evaluator(Path("/public"), Path("/solver"))
+        launches = [list(c.args) for c in call.call_args_list if c.args and c.args[0] == "run"]
+        self.assertEqual(len(launches), 3)
+        self.assertFalse(any('seccomp=' in item for item in launches[0]))
+        self.assertIn('seccomp=/policy/claude-seccomp.json', launches[1])
+        self.assertFalse(any('seccomp=' in item for item in launches[2]))
+
+    def test_claude_profile_preserves_the_pinned_docker_baseline(self):
+        profile = json.loads(sandbox.CLAUDE_SECCOMP.read_text())
+        extras = profile["syscalls"][-2:]
+        self.assertEqual(extras[0], {"names": ["clone"], "action": "SCMP_ACT_ALLOW",
+                                    "args": [{"index": 0, "value": 268435456, "valueTwo": 268435456,
+                                              "op": "SCMP_CMP_MASKED_EQ"}]})
+        self.assertEqual(extras[1], {"names": ["unshare", "mount", "umount2", "pivot_root", "setns"],
+                                    "action": "SCMP_ACT_ALLOW"})
+        profile["syscalls"] = profile["syscalls"][:-2]
+        digest = hashlib.sha256(json.dumps(profile, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        self.assertEqual(digest, "2c2917c58715fe65258b72b9941cc9223f52f2b384b1353e3f78ba0e85147884")
+
+    def test_saved_claude_policy_cannot_drift_on_resume(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / 'claude-seccomp.json'
+            shutil.copy2(sandbox.CLAUDE_SECCOMP, path)
+            record = {'harness': 'claude', 'conditions': {
+                'agent_seccomp': {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()},
+                'claude_settings': harnesses.claude_settings()}}
+            self.assertEqual(runner.agent_policy(root, record), path)
+            path.write_text(path.read_text() + '\n')
+            with self.assertRaises(sandbox.BenchmarkError):
+                runner.agent_policy(root, record)
+            with self.assertRaisesRegex(sandbox.BenchmarkError, 'fresh run'):
+                runner.agent_policy(root, {'harness': 'claude', 'conditions': {}})
+            with self.assertRaises(sandbox.BenchmarkError):
+                runner.agent_policy(root, {**record, 'harness': 'codex'})
+
+
+class BubblewrapArgumentsTests(unittest.TestCase):
+    def test_only_proc_mount_is_replaced(self):
+        arguments = ['--unshare-user', '--unshare-pid', '--ro-bind', '/', '/', '--proc', '/proc',
+                     '--setenv', 'VALUE', '--proc', '--', 'python3', '--proc', '/other']
+        expected = ['--unshare-user', '--unshare-pid', '--ro-bind', '/', '/', '--bind', '/proc', '/proc',
+                    '--setenv', 'VALUE', '--proc', '--', 'python3', '--proc', '/other']
+        self.assertEqual(nested_arguments(arguments), expected)
+        self.assertEqual(nested_arguments(['--unshare-user', 'python3', '--proc', '/other']),
+                         ['--unshare-user', 'python3', '--proc', '/other'])
+
+    def test_unknown_and_incomplete_argument_forms_fail_closed(self):
+        for arguments in (['--proc'], ['--proc', '/other'], ['--args', '5'], ['--new-unknown-option'],
+                          ['--ro-bind', '/only-one-path']):
+            with self.subTest(arguments=arguments), self.assertRaises(ValueError):
+                nested_arguments(arguments)
+
 
 class CLITests(unittest.TestCase):
     def test_defaults_and_validation(self):
@@ -409,7 +523,7 @@ class CLITests(unittest.TestCase):
 
 
 class RunnerLoopTests(unittest.TestCase):
-    def experiment(self, scores, *, errors=(), complete=False, resume=False, resume_round_timeout=None):
+    def experiment(self, scores, *, errors=(), complete=False, resume=False, resume_round_timeout=None, harness='codex'):
         with tempfile.TemporaryDirectory() as temporary:
             state = Path(temporary)
             docker = mock.MagicMock()
@@ -443,7 +557,7 @@ class RunnerLoopTests(unittest.TestCase):
                 score = next(values)
                 return {"highest_passed": score, "complete": complete, "first_failure": None}
 
-            args = cli.parser().parse_args(["run", "--model", "synthetic", "--end", "1",
+            args = cli.parser().parse_args(["run", "--harness", harness, "--model", "synthetic", "--end", "1",
                                             "--stale-limit", "2", "--max-rounds", "10", "--retry-delay", "0"])
             if resume_round_timeout is not None:
                 args.round_timeout = 1800
@@ -452,7 +566,7 @@ class RunnerLoopTests(unittest.TestCase):
                  mock.patch.object(runner, "run_process", side_effect=model), \
                  mock.patch.object(runner, "evaluate", side_effect=evaluate) as verifier, \
                  mock.patch.object(harnesses.Harness, "authenticate"), \
-                 mock.patch.dict(os.environ, {"OPENAI_API_KEY": "fixture-key"}):
+                 mock.patch.dict(os.environ, {"OPENAI_API_KEY": "fixture-key", "ANTHROPIC_API_KEY": "fixture-key"}):
                 path = runner.run_experiment(args)
                 if resume:
                     resume_args = ["resume", str(path)]
@@ -475,6 +589,13 @@ class RunnerLoopTests(unittest.TestCase):
         self.assertEqual(record["stop_reason"], "complete")
         self.assertEqual(len(record["rounds"][0]["attempts"]), 2)
         self.assertEqual(count, 1)
+
+    def test_claude_run_snapshots_its_scoped_policy_and_settings(self):
+        record, count = self.experiment([1], complete=True, harness='claude')
+        self.assertEqual(count, 1)
+        self.assertEqual(record['conditions']['agent_seccomp']['sha256'],
+                         hashlib.sha256(sandbox.CLAUDE_SECCOMP.read_bytes()).hexdigest())
+        self.assertEqual(record['conditions']['claude_settings'], harnesses.claude_settings())
 
     def test_unknown_model_is_not_scored_even_on_zero_exit(self):
         record, count = self.experiment([], errors=["model not found"])

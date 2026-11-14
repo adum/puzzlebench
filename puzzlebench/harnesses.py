@@ -20,6 +20,24 @@ PROVIDERS = {
     "mistral": (["api.mistral.ai"], ["MISTRAL_API_KEY"]),
 }
 
+CLAUDE_MODEL_MINIMUMS = {"claude-opus-5-5": (2, 1, 280)}
+
+
+def claude_settings() -> dict:
+    # The approved Docker boundary provides the outer process isolation.
+    return {
+        "disableAllHooks": True,
+        "sandbox": {
+            "enabled": True, "failIfUnavailable": True,
+            "allowUnsandboxedCommands": False, "autoAllowBashIfSandboxed": True,
+            "enableWeakerNestedSandbox": True, "enableWeakerNetworkIsolation": False,
+            "bwrapPath": "/opt/puzzlebench/claude-bwrap",
+            "filesystem": {"allowWrite": ["/workspace", "/tmp", "/home/bench"]},
+            "network": {"allowedDomains": [], "deniedDomains": ["*"], "strictAllowlist": True,
+                        "allowUnixSockets": [], "allowAllUnixSockets": False, "allowLocalBinding": False},
+        },
+    }
+
 
 def auth_secrets(path: Path | None) -> tuple[str, ...]:
     if not path or not path.is_file():
@@ -47,6 +65,24 @@ class Harness:
     name: str
     model: str
     effort: str | None = None
+
+    def preflight(self, docker: Docker, container: str) -> None:
+        if self.name != "claude":
+            return
+        try:
+            docker.call("exec", container, "test", "-x", "/opt/puzzlebench/claude-bwrap")
+            docker.call("exec", container, "bwrap", "--version")
+        except BenchmarkError:
+            raise BenchmarkError("Claude requires the rebuilt bubblewrap runtime; run python3 benchmark.py build") from None
+        try:
+            docker.call("exec", container, "/opt/puzzlebench/claude-bwrap", "--unshare-user", "--unshare-pid",
+                        "--ro-bind", "/", "/", "--proc", "/proc",
+                        "--dev", "/dev", "--", "/bin/true")
+        except BenchmarkError:
+            raise BenchmarkError(
+                "Claude's nested subprocess sandbox cannot start under this Docker policy/kernel. "
+                "Check the scoped Claude seccomp profile; credential scrubbing remains enabled."
+            ) from None
 
     @property
     def provider(self) -> str:
@@ -95,10 +131,21 @@ class Harness:
                 args += ["-c", f"model_reasoning_effort={json.dumps(self.effort)}"]
             return args + ["-"], prompt
         if self.name == "claude":
-            args = ["claude", "--print", "--verbose", "--output-format", "stream-json",
+            minimum = CLAUDE_MODEL_MINIMUMS.get(self.model)
+            if minimum and version is not None:
+                installed = re.match(r"(\d+)\.(\d+)\.(\d+)(?:\s|$)", version.strip())
+                if not installed or tuple(map(int, installed.groups())) < minimum:
+                    required = ".".join(map(str, minimum))
+                    raise BenchmarkError(
+                        f"{self.model} requires Claude Code {required} or newer, but the benchmark "
+                        f"container reports {version!r}. Run python3 benchmark.py build and start a "
+                        "fresh run; updating host Claude does not update the Docker image."
+                    )
+            tools = "Read,Write,Edit,Glob,Grep,Bash"
+            args = ["claude", "--safe-mode", "--print", "--verbose", "--output-format", "stream-json",
                     "--no-session-persistence", "--no-chrome", "--strict-mcp-config",
-                    "--mcp-config", '{"mcpServers":{}}', "--settings", '{"disableAllHooks":true}',
-                    "--dangerously-skip-permissions", "--tools", "Read,Write,Edit,Glob,Grep,Bash",
+                    "--mcp-config", '{"mcpServers":{}}', "--settings", json.dumps(claude_settings()),
+                    "--permission-mode", "dontAsk", "--tools", tools, "--allowedTools", tools,
                     "--disallowedTools", "WebFetch,WebSearch,mcp__*", "--model", self.model]
             if self.effort:
                 args += ["--effort", self.effort]
@@ -138,6 +185,7 @@ class Harness:
 PERMANENT_ERRORS = (
     "invalid api key", "incorrect api key", "authentication failed", "unauthorized",
     "model not found", "modelnotfounderror", "model_not_found", "unknown model",
+    "does not support this model",
     "not supported", "unsupported", "not available", "insufficient_quota", "permission denied",
 )
 TRANSIENT_ERRORS = (
@@ -168,6 +216,29 @@ def failure_kind(stdout: str, stderr: str, returncode: int) -> str | None:
     if any(word in text for word in TRANSIENT_ERRORS):
         return "transient_error"
     return "harness_error" if returncode or errors else None
+
+
+def failure_detail(stdout: str, stderr: str) -> str:
+    """Extract a short diagnostic from logs already redacted by the caller."""
+    for line in reversed(stderr.splitlines()):
+        stripped = line.strip()
+        if re.match(r"^(error|fatal):", stripped, re.IGNORECASE):
+            return stripped[:1000]
+    for line in reversed(stdout.splitlines()):
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") in {"error", "turn.failed"} or event.get("is_error"):
+            detail = event.get("error") or event.get("result") or event.get("message")
+            if isinstance(detail, dict):
+                detail = detail.get("message") or detail.get("name")
+            if detail:
+                return str(detail)[:1000]
+    lines = [line.strip() for line in stderr.splitlines() if line.strip()]
+    return lines[-1][:1000] if lines else "The harness exited without a diagnostic; inspect the attempt logs."
 
 
 def usage_from_events(text: str) -> dict:

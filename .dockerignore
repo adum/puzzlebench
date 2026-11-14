@@ -3,3 +3,4 @@
 !containers/benchmark.Dockerfile
 !puzzlebench/
 !puzzlebench/proxy.py
+!puzzlebench/bwrap.py

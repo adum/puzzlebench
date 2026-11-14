@@ -9,9 +9,10 @@ import tomllib
 from pathlib import Path
 
 from .evaluation import evaluate, level_set
+from .harnesses import Harness
 from .runner import (ROOT, STATE, check_inputs, corpus_credentials, docker_for, prepare_full,
                      resume_experiment, run_experiment, run_lock, summary_markdown)
-from .sandbox import BenchmarkError, DEFAULT_IMAGE, Docker, hash_tree
+from .sandbox import BenchmarkError, CLAUDE_SECCOMP, DEFAULT_IMAGE, Docker, hash_tree
 
 
 def run_options(parser):
@@ -60,6 +61,8 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("summary", help="Compare saved trials; public-only scores are labeled separately")
     doctor = commands.add_parser("doctor", help="Check Docker/image availability without invoking an LLM")
     doctor.add_argument("--image", default=DEFAULT_IMAGE)
+    doctor.add_argument("--harness", choices=("codex", "claude", "opencode"),
+                        help="Also check the CLI and its sandbox without credentials or a model call")
     build = commands.add_parser("build", help="Build the pinned harness image (downloads dependencies)")
     build.add_argument("--image", default=DEFAULT_IMAGE)
     prepare = commands.add_parser("prepare", help="Install the full corpus with an automatically generated local password")
@@ -198,7 +201,18 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "doctor":
             with Docker(args.image) as docker:
-                print(json.dumps(docker.preflight(), indent=2))
+                result = docker.preflight()
+                if args.harness:
+                    name = docker.prefix + "-doctor"
+                    command = docker.base(name)
+                    if args.harness == "claude":
+                        command += ["--security-opt", "seccomp=" + str(CLAUDE_SECCOMP)]
+                    docker.start(name, command + [result["id"]])
+                    Harness(args.harness, "preflight-only").preflight(docker, name)
+                    result["harness"] = args.harness
+                    result["version"] = docker.call("exec", name, args.harness, "--version")
+                    result["sandbox_preflight"] = "passed"
+                print(json.dumps(result, indent=2))
             return 0
         if args.command == "build":
             return subprocess.call(["docker", "build", "-f", str(ROOT / "containers/benchmark.Dockerfile"),

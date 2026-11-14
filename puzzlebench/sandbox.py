@@ -15,6 +15,7 @@ from .process import run_process
 
 
 DEFAULT_IMAGE = "puzzlebench:local"
+CLAUDE_SECCOMP = Path(__file__).resolve().parents[1] / "containers" / "claude-seccomp.json"
 MAX_SNAPSHOT_BYTES = 256 * 1024 * 1024
 
 
@@ -148,7 +149,7 @@ class Docker:
         return name
 
     def agent(self, public: Path, workspace: Path, *, hosts: list[str],
-              environment: dict[str, str]) -> str:
+              environment: dict[str, str], seccomp_profile: Path | None = None) -> str:
         internal, external = self.prefix + "-internal", self.prefix + "-egress"
         for name, extra in ((internal, ["--internal"]), (external, [])):
             self.networks.append(name)
@@ -161,6 +162,8 @@ class Docker:
         self.call("network", "connect", "--alias", "inference-proxy", internal, proxy)
         name = self.prefix + "-agent"
         args = self.base(name, network=internal)
+        if seccomp_profile is not None:
+            args += ["--security-opt", "seccomp=" + str(seccomp_profile)]
         args += ["--dns", "127.0.0.1", "--mount", f"type=bind,source={public},target=/bench,readonly"]
         for key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY"):
             args += ["--env", f"{key}=http://inference-proxy:8080"]

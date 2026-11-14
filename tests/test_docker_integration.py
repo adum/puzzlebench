@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from puzzlebench import cli, evaluation, harnesses, runner, sandbox
+from puzzlebench.process import run_process
 
 
 SIMPLE = "v=2&id=1&x=1&y=1&board=.&sx=0&sy=0&plim=2&elim=10"
@@ -96,6 +99,41 @@ print('boundary OK')
             self.assertEqual(result["first_failure"]["status"], "timeout")
             self.assertEqual(docker.containers, [])
 
+    def test_claude_policy_preserves_outer_boundary_and_egress(self):
+        with sandbox.Docker() as docker:
+            docker.preflight()
+            agent = docker.agent(self.public, self.workspace, hosts=["api.openai.com"], environment={},
+                                 seccomp_profile=sandbox.CLAUDE_SECCOMP)
+            code = """import os, socket
+assert os.getuid() != 0
+status = dict(line.split(':', 1) for line in open('/proc/self/status') if ':' in line)
+assert int(status['CapEff'].strip(), 16) == 0
+assert int(status['CapBnd'].strip(), 16) == 0
+assert status['NoNewPrivs'].strip() == '1'
+assert not os.path.exists('/var/run/docker.sock')
+for path in ('/bench/rules.md', '/etc/puzzlebench-write-test', '/proc/sys/kernel/randomize_va_space'):
+    try:
+        descriptor = os.open(path, os.O_WRONLY)
+    except OSError:
+        pass
+    else:
+        os.close(descriptor)
+        raise AssertionError('Protected path writable: ' + path)
+try:
+    socket.create_connection(('1.1.1.1', 443), timeout=1)
+except OSError:
+    pass
+else:
+    raise AssertionError('Direct egress available')
+print('boundary OK')
+"""
+            self.assertEqual(docker.call("exec", agent, "python3", "-c", code), "boundary OK")
+            with self.assertRaises(sandbox.BenchmarkError):
+                docker.call("exec", agent, "curl", "--fail", "--silent", "--max-time", "5", "https://example.com")
+            status = docker.call("exec", agent, "curl", "--silent", "--output", "/dev/null",
+                                 "--write-out", "%{http_code}", "--max-time", "15", "https://api.openai.com/v1/models")
+            self.assertEqual(status, "401")
+
     def test_runner_end_to_end_without_an_llm(self):
         levels = self.root / "levels"
         levels.mkdir()
@@ -115,6 +153,62 @@ print('boundary OK')
             self.assertEqual(record["best_score"], 1)
             self.assertTrue(record["rounds"][0]["evaluation"]["complete"])
             self.assertEqual(record["rounds"][0]["workspace_sha256"], sandbox.hash_tree(run / record["best_workspace"]))
+
+    def test_claude_bash_runs_with_credentials_scrubbed_against_local_api(self):
+        shutil.copy2(Path(__file__).parent / "fixtures/anthropic_stub.py", self.workspace / "anthropic_stub.py")
+        with sandbox.Docker() as docker:
+            docker.preflight()
+            name = docker.prefix + "-claude-fixture"
+            command = docker.base(name) + ["--security-opt", "seccomp=" + str(sandbox.CLAUDE_SECCOMP),
+                      "--mount", f"type=bind,source={self.public},target=/bench,readonly", docker.image]
+            docker.start(name, command)
+            docker.upload(name, self.workspace)
+            harness = harnesses.Harness("claude", "claude-opus-5-5", "high")
+            harness.preflight(docker, name)
+            docker.call("exec", "--detach", name, "python3", "/workspace/anthropic_stub.py")
+            for _ in range(30):
+                try:
+                    ready = json.loads(docker.call("exec", name, "cat", "/workspace/fixture-ready.json"))
+                    break
+                except sandbox.BenchmarkError:
+                    time.sleep(0.1)
+            else:
+                self.fail("Local API fixture failed to start")
+            environment = harness.environment()
+            # Test credentials and a loopback-only server; no real model calls.
+            for key in harnesses.PROVIDERS["anthropic"][1]:
+                environment.pop(key, None)
+            environment.update(ANTHROPIC_API_KEY="sk-ant-api03-synthetic-fixture-not-a-real-key",
+                               CLAUDE_CODE_OAUTH_TOKEN="synthetic-oauth-fixture-not-a-real-token",
+                               ANTHROPIC_BASE_URL=f"http://127.0.0.1:{ready['port']}")
+            command = ["docker", "exec", "-i"]
+            for key, value in environment.items():
+                command += ["--env", key + "=" + value]
+            version = docker.call("exec", name, "claude", "--version")
+            cli_command, prompt = harness.command("Verify subprocess credential scrubbing with Bash, then finish.", version=version)
+            out, err = self.root / "claude-events.jsonl", self.root / "claude-stderr.txt"
+            result = run_process(command + [name] + cli_command, input_text=prompt,
+                                 stdout=out, stderr=err, timeout=45)
+            events = [json.loads(line) for line in out.read_text().splitlines()]
+            tool_results = [e.get("message", {}).get("content") for e in events if e.get("type") == "user"]
+            diagnostic = err.read_text(errors="replace") + json.dumps(tool_results) + out.read_text()[-1000:]
+            self.assertEqual(result.returncode, 0, diagnostic)
+            self.assertIsNone(result.stop, diagnostic)
+            try:
+                scrubbed = docker.call("exec", name, "cat", "/workspace/claude-scrub-ok")
+            except sandbox.BenchmarkError:
+                self.fail(diagnostic)
+            self.assertEqual(scrubbed, "scrubbed")
+            results = [event for event in events if event.get("type") == "result"]
+            self.assertTrue(results and not results[-1].get("is_error"), diagnostic)
+            self.assertEqual(results[-1].get("permission_denials"), [], diagnostic)
+            requests = docker.call("exec", name, "cat", "/workspace/fixture-requests.jsonl")
+            self.assertTrue(requests.strip(), diagnostic)
+            for line in requests.splitlines():
+                request = json.loads(line)
+                self.assertEqual(request["model"], "claude-opus-5-5")
+                self.assertEqual(request["output_config"]["effort"], "high")
+                self.assertEqual(request["max_tokens"], 128000)
 
 
 if __name__ == "__main__":

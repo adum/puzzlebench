@@ -16,9 +16,9 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .evaluation import evaluate, level_set
-from .harnesses import Harness, PROVIDERS, auth_secrets, failure_kind, usage_from_events
+from .harnesses import Harness, PROVIDERS, auth_secrets, claude_settings, failure_detail, failure_kind, usage_from_events
 from .process import run_process
-from .sandbox import BenchmarkError, Docker, hash_tree
+from .sandbox import BenchmarkError, CLAUDE_SECCOMP, Docker, hash_tree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,6 +115,23 @@ def status(run: Path, record: dict, **changes) -> None:
 def check_inputs(run: Path, record: dict) -> None:
     if hash_tree(run / "inputs") != record["input_sha256"]:
         raise BenchmarkError("Input snapshot changed; refusing to continue or score the run")
+    agent_policy(run, record)
+
+
+def agent_policy(run: Path, record: dict) -> Path | None:
+    policy = record["conditions"].get("agent_seccomp")
+    if record["harness"] != "claude":
+        if policy:
+            raise BenchmarkError("The scoped Claude policy may only be used for the Claude harness")
+        return None
+    if not policy:
+        raise BenchmarkError("This saved Claude run predates the sandbox fix; start a fresh run with the rebuilt image")
+    path = run / "claude-seccomp.json"
+    if policy.get("path") != path.name or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != policy["sha256"]:
+        raise BenchmarkError("Saved Claude seccomp policy changed; refusing to continue")
+    if record["conditions"].get("claude_settings") != claude_settings():
+        raise BenchmarkError("Saved Claude sandbox settings differ from this runner; start a fresh run")
+    return path
 
 
 @contextmanager
@@ -188,6 +205,11 @@ def run_experiment(args) -> Path:
     try:
         inputs = snapshot_public(run / "inputs", source)
         seed_workspace(run / "seed")
+        if harness.name == "claude":
+            policy = run / "claude-seccomp.json"
+            shutil.copy2(CLAUDE_SECCOMP, policy)
+            conditions["agent_seccomp"] = {"path": policy.name, "sha256": hashlib.sha256(policy.read_bytes()).hexdigest()}
+            conditions["claude_settings"] = claude_settings()
         source_commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
                                        capture_output=True, text=True, check=False).stdout.strip()
         record = {
@@ -237,7 +259,7 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
     started = time.monotonic()
     previous_seconds = record.get("active_seconds", 0)
     record["active_started_at"] = now()
-    for key in ("stop_reason", "error", "retry_delay"):
+    for key in ("stop_reason", "error", "retry_delay", "harness_failure_detail"):
         record.pop(key, None)
     remaining_budget = c["timeout"] - previous_seconds
     deadline = started + remaining_budget
@@ -250,6 +272,7 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
         if harness.name == "codex" and not harness.credentials():
             secrets += auth_secrets(auth_file)
         check_inputs(run, record)
+        seccomp_profile = agent_policy(run, record)
         # Validate the complete range before invoking a paid model. Private files
         # live only in this host-owned context and are never container mounts.
         with level_set(run / "inputs", end=c["end"], full=c["full"],
@@ -285,7 +308,8 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                            agent_elapsed_seconds=0, agent_output_bytes=0)
                     with docker_for(c) as docker:
                         agent = docker.agent(run / "inputs", source, hosts=PROVIDERS[harness.provider][0],
-                                             environment=harness.environment())
+                                             environment=harness.environment(), seccomp_profile=seccomp_profile)
+                        harness.preflight(docker, agent)
                         harness.authenticate(docker, agent, auth_file)
                         version = docker.call("exec", agent, harness.name if harness.name != "claude" else "claude",
                                               "--version", timeout=30)
@@ -307,7 +331,9 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                         text = (attempt_dir / "events.jsonl").read_text(errors="replace")
                         stderr = (attempt_dir / "stderr.txt").read_text(errors="replace")
                         failure = result.stop or failure_kind(text, stderr, result.returncode)
+                        detail = failure_detail(text, stderr) if failure else None
                         attempts.append({"attempt": attempt, **dataclasses.asdict(result), "failure": failure,
+                                         "failure_detail": detail,
                                          "usage": usage_from_events(text),
                                          "command": ["<round prompt>" if value == prompt else value for value in command]})
                         write_json(attempt_dir / "result.json", attempts[-1])
@@ -327,6 +353,9 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                     status(run, record, phase="retry_wait", retry_delay=delay)
                     time.sleep(delay)
                 if failure:
+                    if attempts and attempts[-1].get("failure_detail"):
+                        record["harness_failure_detail"] = attempts[-1]["failure_detail"]
+                        print(f"Harness error: {record['harness_failure_detail']}", flush=True)
                     stop_reason = failure
                     break
                 check_inputs(run, record)
