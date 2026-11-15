@@ -15,3 +15,4 @@
 3/28/26,robotsrevenge,opus 4.6,600s,level 337
 4/19/26,coil,opus 4.7,600s,level 102
 11/13/26,robotsrevenge,gpt 6.1 sol (high),600s,level 412
+11/14/26,robotsrevenge,opus 5.5 (high),600s,level 337
