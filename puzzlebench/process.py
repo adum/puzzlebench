@@ -23,6 +23,7 @@ def run_process(
     idle_timeout: float = 0, max_output: int = 64 * 1024 * 1024,
     env: dict[str, str] | None = None, secrets: tuple[str, ...] = (),
     progress: Callable[[float, int], None] | None = None,
+    progress_interval: float = 30,
 ) -> Result:
     """Bound logs and wall time, drain both pipes, and reap the process group."""
     stdout.parent.mkdir(parents=True, exist_ok=True)
@@ -81,7 +82,7 @@ def run_process(
         writer = threading.Thread(target=send_input, daemon=True)
         writer.start()
         stop = None
-        next_progress = started + 30
+        next_progress = started + progress_interval
         try:
             while process.poll() is None:
                 now = time.monotonic()
@@ -95,7 +96,7 @@ def run_process(
                     break
                 if progress is not None and now >= next_progress:
                     progress(now - started, size[0])
-                    next_progress = now + 30
+                    next_progress = now + progress_interval
                 time.sleep(0.05)
         finally:
             # Docker containers are separately removed by the caller; killing a
@@ -108,5 +109,8 @@ def run_process(
             for thread in threads:
                 thread.join(timeout=5)
             writer.join(timeout=1)
-        return Result(process.returncode, time.monotonic() - started,
+        elapsed = time.monotonic() - started
+        if progress is not None:
+            progress(elapsed, size[0])
+        return Result(process.returncode, elapsed,
                       stop or ("output_limit" if overflow.is_set() else None))

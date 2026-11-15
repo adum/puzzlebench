@@ -155,6 +155,17 @@ python3 benchmark.py status
 python3 benchmark.py summary
 ```
 
+During agent execution, an interactive terminal shows one updating line with the
+round, elapsed time, remaining agent budget, best score, and latest tool description
+or short agent message. Active tools show their running time; after ten seconds
+without harness output, the line also shows how long output has been quiet.
+The remaining budget is the smaller of the round and overall run budgets.
+Phase changes and evaluation results remain permanent lines. Redirected output
+prints activity changes and at most one unchanged heartbeat per minute, without
+terminal control codes. `status` also includes the latest activity and timing,
+saved on activity changes or every 30 seconds. Activity is extracted locally from
+redacted harness events; no extra model requests are made.
+
 The matrix has `[defaults]` and one `[[runs]]` table per independent trial. Add
 repeated entries for repeated attempts or compare the same provider through
 different harnesses. Entries run sequentially with fresh containers and snapshots.

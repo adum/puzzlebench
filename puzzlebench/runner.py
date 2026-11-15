@@ -18,6 +18,7 @@ from pathlib import Path
 from .evaluation import evaluate, level_set
 from .harnesses import Harness, PROVIDERS, auth_secrets, claude_settings, failure_detail, failure_kind, usage_from_events
 from .process import run_process
+from .progress import AgentProgress
 from .sandbox import BenchmarkError, CLAUDE_SECCOMP, Docker, hash_tree
 
 
@@ -98,7 +99,7 @@ Do not ask the operator questions. Leave a runnable ./run_solver before returnin
 """
 
 
-def status(run: Path, record: dict, **changes) -> None:
+def status(run: Path, record: dict, *, emit: bool = True, **changes) -> None:
     record.update(changes, updated_at=now())
     write_json(run / "run.json", record)
     lines = [f"Run: {record['id']}", f"Model: {record['harness']} / {record['model']}",
@@ -108,8 +109,13 @@ def status(run: Path, record: dict, **changes) -> None:
              f"Agent elapsed: {record.get('agent_elapsed_seconds', 0)} seconds",
              f"Agent output: {record.get('agent_output_bytes', 0)} bytes",
              f"Stop reason: {record.get('stop_reason', '')}", f"Updated: {record['updated_at']}"]
+    if "agent_activity" in record:
+        lines += [f"Agent activity: {record['agent_activity']}",
+                  f"Agent remaining: {record['agent_remaining_seconds']} seconds",
+                  f"Last agent output: {record['agent_quiet_seconds']} seconds ago"]
     (run / "status.md").write_text("\n".join(lines) + "\n")
-    print(f"[{record['phase']}] round={record.get('round', 0)} best={record.get('best_score', 0)}", flush=True)
+    if emit:
+        print(f"[{record['phase']}] round={record.get('round', 0)} best={record.get('best_score', 0)}", flush=True)
 
 
 def check_inputs(run: Path, record: dict) -> None:
@@ -305,7 +311,9 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                     attempt_dir = round_dir / f"attempt-{attempt:02d}"
                     attempt_dir.mkdir()
                     status(run, record, phase="agent", round=number, attempt=attempt,
-                           agent_elapsed_seconds=0, agent_output_bytes=0)
+                           agent_elapsed_seconds=0, agent_output_bytes=0,
+                           agent_activity="starting harness", agent_remaining_seconds=max(0, int(round_deadline - time.monotonic())),
+                           agent_quiet_seconds=0, agent_tool_elapsed_seconds=None)
                     with docker_for(c) as docker:
                         agent = docker.agent(run / "inputs", source, hosts=PROVIDERS[harness.provider][0],
                                              environment=harness.environment(), seccomp_profile=seccomp_profile)
@@ -320,14 +328,15 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                             stop_reason = "time_budget"
                             failure = "timeout"
                             break
-                        result = run_process(
-                            ["docker", "exec", "-i", agent, *command], input_text=stdin,
-                            stdout=attempt_dir / "events.jsonl", stderr=attempt_dir / "stderr.txt",
-                            timeout=allowed_time, idle_timeout=c["idle_timeout"], secrets=secrets,
-                            progress=lambda elapsed, size: status(
-                                run, record, phase="agent", agent_elapsed_seconds=round(elapsed),
-                                agent_output_bytes=size),
-                        )
+                        with AgentProgress(attempt_dir / "events.jsonl", round_number=number,
+                                           best=record["best_score"], budget=allowed_time,
+                                           save=lambda **fields: status(run, record, emit=False, **fields)) as progress:
+                            result = run_process(
+                                ["docker", "exec", "-i", agent, *command], input_text=stdin,
+                                stdout=attempt_dir / "events.jsonl", stderr=attempt_dir / "stderr.txt",
+                                timeout=allowed_time, idle_timeout=c["idle_timeout"], secrets=secrets,
+                                progress=progress, progress_interval=1,
+                            )
                         text = (attempt_dir / "events.jsonl").read_text(errors="replace")
                         stderr = (attempt_dir / "stderr.txt").read_text(errors="replace")
                         failure = result.stop or failure_kind(text, stderr, result.returncode)
