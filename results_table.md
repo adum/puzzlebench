@@ -1,14 +1,15 @@
-| Puzzle | Human Best | gpt 6.1 sol (high) | opus 5.5 (xhigh) | opus 5.5 (high) | opus 4.7 | chatgpt 5.4 | codex 5.3 | opus 4.6 | codex 5.2 | gemini 3 flash | gpt 5.2 | opus 4.5 | gemini 3 pro | gemini 2.5 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| bricolage | 1052 | — | — | — | — | — | — | — | 332 | 316 | — | 55 | — | — |
-| coil | 1206 | — | — | — | 102 | — | 117 | 65 | — | 176 | — | 47 | **195** | 47 |
-| runaway | 500 | — | — | — | — | — | — | — | 500 | **500** | — | **500** | — | — |
-| modulo | 55 | — | — | — | — | — | — | — | 43 | 33 | — | 37 | — | — |
-| robotsrevenge | ? | **412** | **412** | 337 | — | 133 | — | 337 | — | — | — | — | **412** | — |
+| Puzzle | Human Best | gemini 4 carbon (high) | gpt 6.1 sol (high) | opus 5.5 (xhigh) | opus 5.5 (high) | opus 4.7 | chatgpt 5.4 | codex 5.3 | opus 4.6 | codex 5.2 | gemini 3 flash | gpt 5.2 | opus 4.5 | gemini 3 pro | gemini 2.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| bricolage | 1052 | — | — | — | — | — | — | — | — | 332 | 316 | — | 55 | — | — |
+| coil | 1206 | — | — | — | — | 102 | — | 117 | 65 | — | 176 | — | 47 | **195** | 47 |
+| runaway | 500 | — | — | — | — | — | — | — | — | 500 | **500** | — | **500** | — | — |
+| modulo | 55 | — | — | — | — | — | — | — | — | 43 | 33 | — | 37 | — | — |
+| robotsrevenge | ? | **412** | **412** | **412** | 337 | — | 133 | — | 337 | — | — | — | — | **412** | — |
 
 <!--
 Model columns: first public model/family release, newest first. Same-day models
 use name order; effort variants stay adjacent, highest effort first.
+2026-11-10 gemini 4 carbon: https://aistudio.google.com/docs/changelog#11-10-2026
 2026-09-29 gpt 6.1 sol: https://deploymentsafety.openai.com/gpt-6-1-sol
 2026-09-22 opus 5.5: https://www.anthropic.com/claude-opus-5-5
 2026-04-16 opus 4.7: https://www.anthropic.com/news/claude-opus-4-7
