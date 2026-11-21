@@ -1,0 +1,519 @@
+{
+  "scope": "three archived 412/412 solvers, one replay per board; not a hardness proof",
+  "boards": [
+    {
+      "level": "keyhole-25-1.level",
+      "level_hash": "sha256:252e2deac715de0d9882bf60ab9a7f644d5b8a174ffe5950806b65417e26b8a9",
+      "size": 25,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 14,
+      "answer_steps": 85,
+      "step_limit": 102,
+      "rooms_on_route": 4,
+      "fewest_open_turns": 2,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 2.452,
+          "control_seconds": 3.862,
+          "instructions": 14
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 0.388,
+          "control_seconds": 2.627,
+          "instructions": 14
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 11.497,
+          "control_seconds": 3.367,
+          "instructions": 14
+        }
+      ]
+    },
+    {
+      "level": "keyhole-33-1.level",
+      "level_hash": "sha256:0dbd7f81cecae19502c2cc692d5f48f4aa86dced829e19ae65c381dd3105de79",
+      "size": 33,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 18,
+      "answer_steps": 130,
+      "step_limit": 156,
+      "rooms_on_route": 5,
+      "fewest_open_turns": 3,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.251,
+          "control_seconds": 3.366,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 187.072,
+          "control_seconds": 2.996,
+          "instructions": 17
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 42.747,
+          "control_seconds": 3.839,
+          "instructions": 17
+        }
+      ]
+    },
+    {
+      "level": "keyhole-41-1.level",
+      "level_hash": "sha256:599c86b8fa57f61933f952c16ec1fb820f0b95a4b18c1fe3d2642308a2500cc9",
+      "size": 41,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 23,
+      "answer_steps": 175,
+      "step_limit": 210,
+      "rooms_on_route": 6,
+      "fewest_open_turns": 6,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 556.41,
+          "control_seconds": 3.367,
+          "instructions": 21
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 15.505,
+          "control_seconds": 2.91,
+          "instructions": 23
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 49.255,
+          "control_seconds": 3.386,
+          "instructions": 22
+        }
+      ]
+    },
+    {
+      "level": "keyhole-49-1.level",
+      "level_hash": "sha256:3985ec2af2325dfbd483fbb953f9025ecdf40f46af729edbe926a2a671178271",
+      "size": 49,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 26,
+      "answer_steps": 263,
+      "step_limit": 316,
+      "rooms_on_route": 10,
+      "fewest_open_turns": 9,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.187,
+          "control_seconds": 3.573,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 390.072,
+          "control_seconds": 2.908,
+          "instructions": 25
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.128,
+          "control_seconds": 3.817,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-65-1.level",
+      "level_hash": "sha256:e2faab4690d92e1824ce90a688ee51bd41264c52cf51ed923447a56a1fcce13e",
+      "size": 65,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 37,
+      "answer_steps": 489,
+      "step_limit": 587,
+      "rooms_on_route": 17,
+      "fewest_open_turns": 13,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.224,
+          "control_seconds": 3.847,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.155,
+          "control_seconds": 2.966,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.173,
+          "control_seconds": 3.82,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-81-1.level",
+      "level_hash": "sha256:dc67bf5b8e34c691fdce653bc113f70eb8a6e7b71d8f3a1ddb9f66be69300f3d",
+      "size": 81,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 48,
+      "answer_steps": 699,
+      "step_limit": 839,
+      "rooms_on_route": 25,
+      "fewest_open_turns": 15,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.25,
+          "control_seconds": 4.466,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.164,
+          "control_seconds": 3.073,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.169,
+          "control_seconds": 3.858,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-97-1.level",
+      "level_hash": "sha256:7a28f2155a499ada74ce96edbefaa78d7762293afb922d58fba9f6f4b7d52775",
+      "size": 97,
+      "seed": 1,
+      "bare": false,
+      "answer_instructions": 46,
+      "answer_steps": 925,
+      "step_limit": 1110,
+      "rooms_on_route": 33,
+      "fewest_open_turns": 18,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.207,
+          "control_seconds": 3.722,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.174,
+          "control_seconds": 3.077,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.149,
+          "control_seconds": 3.756,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-65-2.level",
+      "level_hash": "sha256:a1189b951983fc39d1a583295b331556c1fd2095b8b9e6dd6ae495a44056ea3b",
+      "size": 65,
+      "seed": 2,
+      "bare": false,
+      "answer_instructions": 36,
+      "answer_steps": 410,
+      "step_limit": 492,
+      "rooms_on_route": 15,
+      "fewest_open_turns": 11,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.229,
+          "control_seconds": 3.849,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.16,
+          "control_seconds": 3.146,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-81-2.level",
+      "level_hash": "sha256:6cacf53b804072b983d4ad479d6dc1a9a37529afb5461e44424b74dfddd84536",
+      "size": 81,
+      "seed": 2,
+      "bare": false,
+      "answer_instructions": 47,
+      "answer_steps": 792,
+      "step_limit": 951,
+      "rooms_on_route": 30,
+      "fewest_open_turns": 19,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.166,
+          "control_seconds": 3.667,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.128,
+          "control_seconds": 3.098,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-97-2.level",
+      "level_hash": "sha256:25f9e7e2131a0dca8a9985b92a145366315d0496e7f67a5cf12f10df6919d00a",
+      "size": 97,
+      "seed": 2,
+      "bare": false,
+      "answer_instructions": 47,
+      "answer_steps": 843,
+      "step_limit": 1012,
+      "rooms_on_route": 37,
+      "fewest_open_turns": 23,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.192,
+          "control_seconds": 3.707,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.161,
+          "control_seconds": 3.048,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "keyhole-97-1-bare.level",
+      "level_hash": "sha256:c7ec3791b4edea1b27e3a9ff95e9899cf346fdcc88a895d8bd1b53d8132ec790",
+      "size": 97,
+      "seed": 1,
+      "bare": true,
+      "answer_instructions": 46,
+      "answer_steps": 925,
+      "step_limit": 1110,
+      "rooms_on_route": 33,
+      "fewest_open_turns": 18,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.149,
+          "control_seconds": 3.696,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.175,
+          "control_seconds": 2.859,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.157,
+          "control_seconds": 3.837,
+          "instructions": null
+        }
+      ]
+    }
+  ]
+}

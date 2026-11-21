@@ -15,6 +15,9 @@ execution of model-generated code.
 
 [Latch](latch.md) builds mazes whose forks can only be passed by remembering a
 hidden bit, and gets harder as the board grows.
+[Keyhole](keyhole.md) plants a random program in a grid of rooms and keeps
+only the doors it walked through: the route is in plain sight, and the
+puzzle is to find a program that walks it.
 
 ## Included
 
