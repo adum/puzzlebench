@@ -11,6 +11,11 @@ The commands below are the original manual solver workflow. Those evaluators run
 solver programs directly on your machine; use the automated runner for isolated
 execution of model-generated code.
 
+## Experimental levels
+
+[Latch](latch.md) builds mazes whose forks can only be passed by remembering a
+hidden bit, and gets harder as the board grows.
+
 ## Included
 
 - `levels_public/` starter public corpus with the first 20 odd-numbered levels (`1..39`)

@@ -1,0 +1,293 @@
+{
+  "scope": "three archived 412/412 solvers, one replay per board; not a hardness proof",
+  "boards": [
+    {
+      "level": "latch-33-1.level",
+      "level_hash": "sha256:b542575c756cf6cbff108ac9336e365e5c67d2142da302762eadbd77c04ba05a",
+      "size": 33,
+      "answer_steps": 96,
+      "step_limit": 106,
+      "stations": 9,
+      "forks": 3,
+      "forks_needing_bit": 0,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 9.714,
+          "control_seconds": 3.764,
+          "instructions": 48
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 0.18,
+          "control_seconds": 2.75,
+          "instructions": 45
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 62.128,
+          "control_seconds": 3.481,
+          "instructions": 28
+        }
+      ]
+    },
+    {
+      "level": "latch-41-1.level",
+      "level_hash": "sha256:d4adbe2d84123840cbac3cdc13ff52ea0f07aa1c3c0716cd9ad7c8799aa0efae",
+      "size": 41,
+      "answer_steps": 162,
+      "step_limit": 179,
+      "stations": 13,
+      "forks": 4,
+      "forks_needing_bit": 1,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 55.294,
+          "control_seconds": 4.238,
+          "instructions": 48
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 70.918,
+          "control_seconds": 2.883,
+          "instructions": 47
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.108,
+          "control_seconds": 4.182,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "latch-49-1.level",
+      "level_hash": "sha256:3df9095966e45d6edcbafbd61244957ef1d3c6b3b46bfdae1409115fc5147e35",
+      "size": 49,
+      "answer_steps": 232,
+      "step_limit": 256,
+      "stations": 19,
+      "forks": 5,
+      "forks_needing_bit": 1,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 12.958,
+          "control_seconds": 4.015,
+          "instructions": 48
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "solved",
+          "runner_status": "pass",
+          "seconds": 9.557,
+          "control_seconds": 2.576,
+          "instructions": 45
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.159,
+          "control_seconds": 3.422,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "latch-65-1.level",
+      "level_hash": "sha256:675224260ebbf2e7ea5c0e151b02f37385a290cf5673b3ad2af86fe0ca855fad",
+      "size": 65,
+      "answer_steps": 493,
+      "step_limit": 543,
+      "stations": 40,
+      "forks": 12,
+      "forks_needing_bit": 4,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.207,
+          "control_seconds": 4.013,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.155,
+          "control_seconds": 2.967,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.117,
+          "control_seconds": 4.098,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "latch-81-1.level",
+      "level_hash": "sha256:451ccfd24995bf3c9843300857389a5fb7f78c4badde1df562910f07cedd7ce4",
+      "size": 81,
+      "answer_steps": 743,
+      "step_limit": 818,
+      "stations": 58,
+      "forks": 16,
+      "forks_needing_bit": 7,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.22,
+          "control_seconds": 4.019,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.159,
+          "control_seconds": 3.569,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.157,
+          "control_seconds": 4.074,
+          "instructions": null
+        }
+      ]
+    },
+    {
+      "level": "latch-97-1.level",
+      "level_hash": "sha256:2d7dc9258d34a95a69bc39941a3df5190ccd3649d1a3226f792e984acefb4591",
+      "size": 97,
+      "answer_steps": 891,
+      "step_limit": 981,
+      "stations": 71,
+      "forks": 23,
+      "forks_needing_bit": 11,
+      "replays": [
+        {
+          "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+          "model": "gpt-6.1-sol",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "invalid_solution",
+          "seconds": 575.165,
+          "control_seconds": 3.896,
+          "instructions": null
+        },
+        {
+          "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+          "model": "claude-opus-5-5",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 550.131,
+          "control_seconds": 2.85,
+          "instructions": null
+        },
+        {
+          "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+          "model": "gemini-4-carbon-high",
+          "cpus": 4,
+          "memory": "4g",
+          "seconds_per_level": 600,
+          "status": "not_solved",
+          "runner_status": "solver_error",
+          "seconds": 590.12,
+          "control_seconds": 3.928,
+          "instructions": null
+        }
+      ]
+    }
+  ]
+}
