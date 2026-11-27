@@ -3,21 +3,34 @@
 ## Automated model runs
 
 From the repository root, use `python3 benchmark.py run --harness codex --model MODEL_ID`
-to develop and evaluate a solver automatically in isolated containers. Claude Code
-and OpenCode are also supported. See [the benchmark guide](../../docs/benchmarking.md)
+to develop and evaluate a solver automatically in isolated containers. Claude Code,
+OpenCode and Antigravity are also supported. The default is the
+[544-board v2.0 campaign](../../docs/robotsrevenge-v2.md). See [the benchmark guide](../../docs/benchmarking.md)
 for full/private evaluation, model matrices, credentials, and security boundaries.
 
-The commands below are the original manual solver workflow. Those evaluators run
+The manual commands below are for the original v1 order only. Those evaluators run
 solver programs directly on your machine; use the automated runner for isolated
 execution of model-generated code.
 
 ## Experimental levels
 
-[Latch](latch.md) builds mazes whose forks can only be passed by remembering a
-hidden bit, and gets harder as the board grows.
+See the [board generation notes](../../docs/robotsrevenge-generation.md) for
+the pilot findings, why v2.0 stops at 544, and how to decide what comes next.
+
+[Branching](branching.md) generates compact boards and tests them with the
+generator's source visible. Generation alone is not a hardness rating.
+[Clockwork](clockwork.md) is the earlier, enumerable family; it is retained
+as a positive control for the shortcut tests. [Latch](latch.md) builds mazes
+whose forks can only be passed by remembering a hidden bit, and gets harder
+as the board grows. [Mirage](mirage.md) co-designs steered Mealy state
+transducers with a deceptive shortcut channel, scaling from solvable `29x29`
+boards up to `81x81` boards that survive all three local `412/412` solvers.
 [Keyhole](keyhole.md) plants a random program in a grid of rooms and keeps
 only the doors it walked through: the route is in plain sight, and the
 puzzle is to find a program that walks it.
+Examples can be opened with **Load Level**. For an actual v2.0 board, run
+`python3 benchmark.py prepare` from the repository root and open an odd-numbered
+`.level` file under `.puzzlebench/data/robotsrevenge-v2.0/levels_public/`.
 
 ## Included
 
@@ -29,7 +42,7 @@ puzzle is to find a program that walks it.
 - `results.md` append-only benchmark log
 - `index.html`, `index.js`, `index.css`, `assets/` for local browser UI
 
-## Public vs private levels
+## Legacy v1 layout
 
 - Fresh checkout: `levels_public/` contains 20 starter odd levels and works immediately with the public evaluator.
 - Local working files under `external/` are intentionally not tracked by git.

@@ -109,6 +109,7 @@ class Docker:
         self.prefix = "pb-" + uuid.uuid4().hex[:16]
         self.containers: list[str] = []
         self.networks: list[str] = []
+        self.volumes: list[str] = []
         self.main_pids: dict[str, int] = {}
 
     def call(self, *args: str, **kwargs) -> str:
@@ -148,8 +149,9 @@ class Docker:
         self.main_pids[name] = int(children[0])
         return name
 
-    def agent(self, public: Path, workspace: Path, *, hosts: list[str],
-              environment: dict[str, str], seccomp_profile: Path | None = None) -> str:
+    def agent(self, public: Path | None, workspace: Path | None, *, hosts: list[str],
+              environment: dict[str, str], seccomp_profile: Path | None = None,
+              ipc: str | None = None) -> str:
         internal, external = self.prefix + "-internal", self.prefix + "-egress"
         for name, extra in ((internal, ["--internal"]), (external, [])):
             self.networks.append(name)
@@ -164,7 +166,12 @@ class Docker:
         args = self.base(name, network=internal)
         if seccomp_profile is not None:
             args += ["--security-opt", "seccomp=" + str(seccomp_profile)]
-        args += ["--dns", "127.0.0.1", "--mount", f"type=bind,source={public},target=/bench,readonly"]
+        args += ["--dns", "127.0.0.1"]
+        if public is not None:
+            args += ["--mount", f"type=bind,source={public},target=/bench,readonly"]
+        if ipc:
+            args += ["--mount", f"type=volume,source={ipc},target=/opt/puzzlebench/ipc,readonly",
+                     "--workdir", "/opt/puzzlebench/agy"]
         for key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY"):
             args += ["--env", f"{key}=http://inference-proxy:8080"]
         args += ["--env", "NO_PROXY=localhost,127.0.0.1", "--env", "no_proxy=localhost,127.0.0.1"]
@@ -172,16 +179,33 @@ class Docker:
             args += ["--env", key]
         # docker reads values from this invocation's environment, not argv/logs.
         self.start(name, args + [self.image], env={**os.environ, **environment})
-        self.upload(name, workspace)
+        if workspace is not None:
+            self.upload(name, workspace)
         return name
 
-    def evaluator(self, public: Path, workspace: Path) -> str:
+    def evaluator(self, public: Path, workspace: Path, *, ipc: str | None = None) -> str:
         name = self.prefix + "-eval-" + uuid.uuid4().hex[:6]
         args = self.base(name)
+        if ipc:
+            args += ["--mount", f"type=volume,source={ipc},target=/opt/puzzlebench/ipc"]
         args += ["--mount", f"type=bind,source={public},target=/bench,readonly", self.image]
         self.start(name, args)
         self.upload(name, workspace)
         return name
+
+    def agy_pair(self, public: Path, workspace: Path, *, hosts: list[str],
+                 environment: dict[str, str]) -> tuple[str, str]:
+        # Only a Unix socket is shared. Neither the solver tree nor credentials
+        # cross into the other container, even across retries and resumed rounds.
+        ipc = self.prefix + "-ipc"
+        self.volumes.append(ipc)
+        self.call("volume", "create", ipc)
+        worker = self.evaluator(public, workspace, ipc=ipc)
+        self.call("exec", "-d", worker, "/usr/bin/socat",
+                  "UNIX-LISTEN:/opt/puzzlebench/ipc/worker.sock,mode=0600,fork",
+                  "EXEC:/usr/bin/python3 -I /opt/puzzlebench/agy-worker.py")
+        controller = self.agent(None, None, hosts=hosts, environment=environment, ipc=ipc)
+        return controller, worker
 
     def upload(self, container: str, source: Path) -> None:
         hash_tree(source)
@@ -233,7 +257,7 @@ os.execv('/bin/tar', ['tar', '-cf', '-', '-C', '/workspace', '.'])
         with tempfile.TemporaryDirectory(prefix="pb-export-") as temporary:
             archive_path = Path(temporary) / "workspace.tar"
             result = run_process(
-                ["docker", "exec", container, "python3", "-c", export_code, str(self.main_pids[container])], stdout=archive_path,
+                ["docker", "exec", container, "python3", "-I", "-c", export_code, str(self.main_pids[container])], stdout=archive_path,
                 stderr=Path(temporary) / "stderr", timeout=120,
                 max_output=MAX_SNAPSHOT_BYTES + 32 * 1024 * 1024,
             )
@@ -249,7 +273,7 @@ os.execv('/bin/tar', ['tar', '-cf', '-', '-C', '/workspace', '.'])
             self.containers.remove(name)
 
     def close(self) -> None:
-        for kind, names in (("container", self.containers), ("network", self.networks)):
+        for kind, names in (("container", self.containers), ("network", self.networks), ("volume", self.volumes)):
             for name in reversed(names.copy()):
                 try:
                     self.call(kind, "rm", *(["--force"] if kind == "container" else []), name, timeout=20)
@@ -257,6 +281,7 @@ os.execv('/bin/tar', ['tar', '-cf', '-', '-C', '/workspace', '.'])
                     pass
         self.containers.clear()
         self.networks.clear()
+        self.volumes.clear()
 
     def __enter__(self):
         return self

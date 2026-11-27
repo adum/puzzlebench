@@ -18,8 +18,8 @@ We include a standard prompt in prompt.txt that exhorts an agent to solve as man
 
 ## Automated benchmarks
 
-Robot's Revenge has a container-isolated runner for Codex, Claude Code, and
-OpenCode models, with continuation rounds, batch trials, score-only private
+Robot's Revenge has a container-isolated runner for Codex, Claude Code, OpenCode,
+and Antigravity (`agy`), with continuation rounds, batch trials, score-only private
 evaluation feedback, and reproducible run records. See
 [the benchmark guide](docs/benchmarking.md) for setup, authentication, and isolation.
 
@@ -28,5 +28,7 @@ python3 benchmark.py build
 python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID
 ```
 
-The default is a public-only run. Install the corpus with
-`python3 benchmark.py prepare --full` and pass `--full` to authorize a full evaluation.
+The default is the 272 public boards in [Robot's Revenge v2.0](docs/robotsrevenge-v2.md).
+The full campaign has 544 boards. With the private-corpus owner key available,
+use `python3 benchmark.py prepare --full`, then pass `--full` to authorize scoring.
+Use `--corpus v1` to reproduce a run on the original order instead.

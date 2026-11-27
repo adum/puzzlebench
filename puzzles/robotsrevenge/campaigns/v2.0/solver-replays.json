@@ -1,0 +1,621 @@
+{
+  "corpus": "v2.0",
+  "corpus_manifest_sha256": "ed69fdb0e75184945cf58f42dc6a91e718dc348104d2555569ff888733c7b1dd",
+  "scope": "Independent public diagnostics; not full-campaign scores.",
+  "seconds_per_board": 600,
+  "cpus": 4,
+  "memory": "4g",
+  "verified_controls": 64,
+  "solver_runs": {
+    "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "image": "sha256:3e6d7f0502773ae01312623713751c4e610096fbfef152b71382e5d2618b95fb",
+      "archive_sha256": "ac24c1e7e3d1eb40e20f1a5434c86a18d4617da5bd46df201865734d273cdfbd",
+      "v1_best": 412,
+      "harness": "codex"
+    },
+    "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "image": "sha256:161bfff470f1a6dbe0d7b15b4be7ff53377e1402e84b7801d7f492704c059b30",
+      "archive_sha256": "c55dddaa3dbfc6040e74fe4838ebab5b5bab714343be9294476f377cae6cecd4",
+      "v1_best": 412,
+      "harness": "claude"
+    },
+    "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+      "model": "gemini-4-carbon-high",
+      "effort": "high",
+      "image": "sha256:228b1ac5568aee29fcef1e444b62a44e3a032dd049e6bfd0c428cf63da034c5c",
+      "archive_sha256": "7bd53d7bbb7bfddc117ce39b061a3c546c6f7e6b3d3c8b158f3e7f30ccbad1c4",
+      "v1_best": 412,
+      "harness": "agy"
+    },
+    "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "image": "sha256:161bfff470f1a6dbe0d7b15b4be7ff53377e1402e84b7801d7f492704c059b30",
+      "archive_sha256": "0df9208634ff740b69b9a1b66bee14ece8e15ec44e30bf79b609f22e5ba8fdd4",
+      "v1_best": 337,
+      "harness": "claude"
+    }
+  },
+  "boards": [
+    {
+      "position": 513,
+      "stage": 1,
+      "family": "keyhole",
+      "board_sha256": "139f6fa5777e10520acb29dd508e8eb200616b1d9e5d57bc91af831fe98e2953",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.249,
+          "control_seconds": 4.436,
+          "evaluation_sha256": "c9cce626b6bc1f18da3eec00ece19f0a51d9a66bc67b35650443c595fce72a0c"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.145,
+          "control_seconds": 3.433,
+          "evaluation_sha256": "4df64e1b39220ce3f5c8c4dd2a8fde79518c1f2d77c1492f012a83b0f0f516db"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.211,
+          "control_seconds": 4.274,
+          "evaluation_sha256": "5a0c565bdd12b5be5df9fc0be5aaf03fdf735e308b207e959fb4b0374e75168a"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.202,
+          "control_seconds": 1.908,
+          "evaluation_sha256": "9a77cfa038882a2f7e3a3c50a6835ce00ab10888cff8ede7f34ba883f4de6f8d"
+        }
+      }
+    },
+    {
+      "position": 515,
+      "stage": 1,
+      "family": "branching",
+      "board_sha256": "75a0702198a85d161136902af748cb8ea17c94a222ceb78fe2b66a382dd36f04",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.262,
+          "control_seconds": 3.9,
+          "evaluation_sha256": "388abff217bcca2abe5aa719c2bdf1309d82b5c19d5b7bbbc5f2e9b8ca9167d1"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.154,
+          "control_seconds": 3.033,
+          "evaluation_sha256": "0985315cd924b85586ee22cdd0230147cd335255b2c8d71533a7f774a426bbb2"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.168,
+          "control_seconds": 3.85,
+          "evaluation_sha256": "c8ea9365aefe763a4283d2e5c9a454d4fc3ed451cf7d235c18523a2b14f5d6e4"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.204,
+          "control_seconds": 1.866,
+          "evaluation_sha256": "2924164c2f8f3f3e0e81e6000df4bc5a7d5665b45a33dc5e22ede7de2988b170"
+        }
+      }
+    },
+    {
+      "position": 517,
+      "stage": 1,
+      "family": "keyhole",
+      "board_sha256": "0184d381e83fdedb13e799a602490c6731c57924b68109d31a7db15b1fa493ca",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.171,
+          "control_seconds": 3.841,
+          "evaluation_sha256": "82899db7f0f2ffe68a5d0ed7aa88ddf917d74d2aa9367d3da7c8c19a16745125"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.164,
+          "control_seconds": 3.042,
+          "evaluation_sha256": "d54b2b21197209d18b02bb1b70c76b3cd045b8df1c36b965b1fdf0555813dbae"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.17,
+          "control_seconds": 4.138,
+          "evaluation_sha256": "480e9fc91c8ce7cb0345996768278144a26b20b1d591500ddfc8dffdc966a42b"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.181,
+          "control_seconds": 1.917,
+          "evaluation_sha256": "08e26baddeb90b0a66cff3487ba94cd8308f98a34b2746bf95e1ff4e71e021f2"
+        }
+      }
+    },
+    {
+      "position": 519,
+      "stage": 1,
+      "family": "branching",
+      "board_sha256": "aaca24834f3a6267cd0bd5ef612da3f96aaa2638476a4793ab92eee2ff66c405",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 31.159,
+          "control_seconds": 3.852,
+          "evaluation_sha256": "42b16290dd8278d31a98688e5b3b9e4bfd1b1aa9f5d5bdc2213d5879c177c6e4"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 26.128,
+          "control_seconds": 3.116,
+          "evaluation_sha256": "67e8320ea6f7d63ec40f8676fc1a622795dbeebea1e01fcdd7c459d129d2b1ef"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.151,
+          "control_seconds": 3.792,
+          "evaluation_sha256": "0b60078de78bf7a76fa02690e51d32575e13be533405ea3ba335062dc65cb6b2"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 105.024,
+          "control_seconds": 1.914,
+          "evaluation_sha256": "5e5439c1d2382f268a2a9119a5c3946d54865bdb4b27bcdd900ef2ff98ffd467"
+        }
+      }
+    },
+    {
+      "position": 521,
+      "stage": 2,
+      "family": "branching",
+      "board_sha256": "bd4a685f18a988ae5614335db461dfa160a5b6a61010db18f195bd8ccbdd5f28",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.254,
+          "control_seconds": 3.867,
+          "evaluation_sha256": "935cb137f549918e20618db3d462dbde815a8aa3bda4e478206e7518f1bc58fb"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.135,
+          "control_seconds": 3.093,
+          "evaluation_sha256": "1067ba96df47536289511eeb243b995e05a6eaf697589e682a4fff8e76bf1e98"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.157,
+          "control_seconds": 3.922,
+          "evaluation_sha256": "2ab95b6bd0d8f5b9114ebd1b4374ff623831ce224a7fb36ae87092e2898c40c2"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.239,
+          "control_seconds": 1.876,
+          "evaluation_sha256": "a87c80c9b67fa256471287bc75167a36cdcb99d8402fbc6ca0c1bd79b41d2952"
+        }
+      }
+    },
+    {
+      "position": 523,
+      "stage": 2,
+      "family": "keyhole",
+      "board_sha256": "1811d13a98f0796189024524cce6f2e7639b28f50e4e4379a0401b72621c3580",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.21,
+          "control_seconds": 3.794,
+          "evaluation_sha256": "e1086a630b14366601e44349efd56592379f2b420064b65a1c1d5b2c2b6602a6"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.157,
+          "control_seconds": 2.942,
+          "evaluation_sha256": "30fbe3316a7081479fce04f4194ac4e689f8e60bae6ddfd85e100a42297cba1f"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.215,
+          "control_seconds": 3.906,
+          "evaluation_sha256": "d10c515372039dbc6261dc57bda0bf7c360e4c70c4f561f3baaf73c74d0a7d97"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.26,
+          "control_seconds": 2.171,
+          "evaluation_sha256": "a287cd4a7521b6a5ba60c14c426db2e2d58af20719fa6c27b8d73cd35a7cf186"
+        }
+      }
+    },
+    {
+      "position": 525,
+      "stage": 2,
+      "family": "branching",
+      "board_sha256": "f817b88843c81d01aeb725392cf23d7e8931d948e726bf42e860f52956a763c2",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 16.173,
+          "control_seconds": 3.854,
+          "evaluation_sha256": "444de9c9b55b339520cfb38c8ad033e310ddced39c11a91750c2724b3b1256ad"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 1.339,
+          "control_seconds": 2.581,
+          "evaluation_sha256": "47f971a67594e17d0bab40d80a6b3a1aaa594184f1b0c287ab9a58e74e8fb8ee"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.154,
+          "control_seconds": 3.637,
+          "evaluation_sha256": "8345d41050ce8c706f7e6ccd70f44ec758d7dd47941489a8e85b16ff9c54997d"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "solved",
+          "evaluator_status": "pass",
+          "seconds": 6.565,
+          "control_seconds": 1.88,
+          "evaluation_sha256": "2dc166afb277aa87865c02186a80e73b824df0bea66ec89b11e7aed403d1beb3"
+        }
+      }
+    },
+    {
+      "position": 527,
+      "stage": 2,
+      "family": "keyhole",
+      "board_sha256": "0ce0644942d44b58d25af11da7f616b2a89dbc838df56f4595ca0cee9ba33c7e",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.2,
+          "control_seconds": 3.808,
+          "evaluation_sha256": "b855384c626498d5b0481200c8a0df6d63bbc86acf280ff7724f65bff3356414"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.129,
+          "control_seconds": 2.93,
+          "evaluation_sha256": "4d9496ad4aeb910d79a99afd154c12f91f9eaf307331f0bb2ca956638a6c3a87"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.17,
+          "control_seconds": 3.788,
+          "evaluation_sha256": "434a8aa60a77867e53d3f20494fa76e2f9afd39fdea9e694eedfb2a5f26a1eaa"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.211,
+          "control_seconds": 1.481,
+          "evaluation_sha256": "d4f1379d3056ed9ad631b2500952d8889a4e128199f0da57a9ff10be37003b43"
+        }
+      }
+    },
+    {
+      "position": 529,
+      "stage": 3,
+      "family": "keyhole",
+      "board_sha256": "9c350b72f3a597a3f2b773dbee0f1e792b1b14fd4cb6e6ba5036de9bf31edf4d",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.199,
+          "control_seconds": 3.732,
+          "evaluation_sha256": "9465c890167534721e741d6b7edcaa25a9a81c6529e930e33408910c8883529a"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.158,
+          "control_seconds": 2.96,
+          "evaluation_sha256": "5104f08738575c44baf4d8e1da7bd9d3cd7d3b4e57c7a33155886fa6f6f70609"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.214,
+          "control_seconds": 3.931,
+          "evaluation_sha256": "2fce76f5f03b3490d44d26f1eccb2200fb02c592602b789fd2746850bccbfe37"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.242,
+          "control_seconds": 1.842,
+          "evaluation_sha256": "c87c0bc8c72c2605c64f853136bd154171185bd4e9bd520c825a9f03c89a1f4d"
+        }
+      }
+    },
+    {
+      "position": 531,
+      "stage": 3,
+      "family": "branching",
+      "board_sha256": "7c110cfb9afa04457a7726f9f119078b6d72d35811aec4509cc5947530bec20c",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.204,
+          "control_seconds": 3.724,
+          "evaluation_sha256": "1fa38be7fbe7cc532c42f357365cc79c9ec087d67c7a2fdf6e95de9cc49763fd"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.155,
+          "control_seconds": 2.928,
+          "evaluation_sha256": "d5d4af2220004722bad4540962f256aab68b0ed08700e48a942cb1500803a9b3"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.168,
+          "control_seconds": 3.943,
+          "evaluation_sha256": "e818371eae6dd2729fe6f07d40d65d9bcf8b4b0229b42d832401584c94a501f5"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.184,
+          "control_seconds": 1.86,
+          "evaluation_sha256": "81e8b69f4025e9df5aa37bf62841f47115480898289771160aa056f1b8334f34"
+        }
+      }
+    },
+    {
+      "position": 533,
+      "stage": 3,
+      "family": "keyhole",
+      "board_sha256": "ffcc09adc1c6bbb3da732dd91ae6ce5f5da776710b44586b352ecf301a85bf5b",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.207,
+          "control_seconds": 3.889,
+          "evaluation_sha256": "fbd0af4c6c816d18ffe13299f88a83b227ff0ea8b4a8791bb31e8ea99a0841de"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.156,
+          "control_seconds": 2.938,
+          "evaluation_sha256": "ae7fe6b79bcb3aa7776373ccfbdbf687c136b0a1575539d060bc580df767dbe2"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.232,
+          "control_seconds": 3.791,
+          "evaluation_sha256": "ac26bde683c402ee8c6066b0be7fbc1f8f3a1a5336e4a7bdf27ab10f42c1c04d"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.217,
+          "control_seconds": 1.526,
+          "evaluation_sha256": "dccaa6fe8ea5f2cc54712b514f05d8e977e8b775e28997f949057cff3948fea1"
+        }
+      }
+    },
+    {
+      "position": 535,
+      "stage": 3,
+      "family": "branching",
+      "board_sha256": "ec8884c949021e20fd990a6bb917b663f4f6880d939bdae4be6c97fe3ee75a5a",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.25,
+          "control_seconds": 4.038,
+          "evaluation_sha256": "b2ca182f91166c0f9fd60588a13c1a832b92d2353028035f80bf19b7ae4b1383"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.169,
+          "control_seconds": 2.96,
+          "evaluation_sha256": "212957fa23b1525a124932ccb96f4bac951820c264c582c77c6fcd0199fe2c8d"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.153,
+          "control_seconds": 3.864,
+          "evaluation_sha256": "d66815ecf31aee0534fa3a0a0bdadf583729092ed157cdeafbe61f9da0c0c990"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.194,
+          "control_seconds": 1.828,
+          "evaluation_sha256": "037e8d2f70a237abb92754e05c78b90a69c5886527533691cac928e1f002e11c"
+        }
+      }
+    },
+    {
+      "position": 537,
+      "stage": 4,
+      "family": "branching",
+      "board_sha256": "ce424e3807d557bcffe3f62312a567b162b1cd9bdfc2bbe9c8b9f60d7c14a831",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.157,
+          "control_seconds": 3.867,
+          "evaluation_sha256": "d49a7e9ffa6f76e3f96c2873c7dadfe38789a31a56ec028cc8130c9d40c04203"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.145,
+          "control_seconds": 2.911,
+          "evaluation_sha256": "cd934dc4f27a75b890fe26a38dcba8e0b0ab43a22c29380e4283cb0cbf8e87c0"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.122,
+          "control_seconds": 3.929,
+          "evaluation_sha256": "a1e1a30935000ee30e25f2586b36118d82f8f03af5808ac088c04ddba9b6e056"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.157,
+          "control_seconds": 1.702,
+          "evaluation_sha256": "9e8a9d073e519062620c6033b8c3142c150cc341b50ec95da373302b16ec9f45"
+        }
+      }
+    },
+    {
+      "position": 539,
+      "stage": 4,
+      "family": "keyhole",
+      "board_sha256": "a6f7b883e8e7b4ba10f5d575a7e8293df1287ea3d9dfdf9473eb5add4bc902de",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.182,
+          "control_seconds": 3.879,
+          "evaluation_sha256": "32e258267f0c44daeaffb520e06d08a51470950c3dadf1cc50a43f88a207c444"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.163,
+          "control_seconds": 2.965,
+          "evaluation_sha256": "014531fc1939b78e3023ba8fbec3ffa2621edf35c0a38252e23a78a70b90c0f5"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.167,
+          "control_seconds": 3.854,
+          "evaluation_sha256": "12f4a0fb2f79e89550f3fc2fee1e58c0dbaa66e4947a9d1323fa236a95a5ae83"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.189,
+          "control_seconds": 1.803,
+          "evaluation_sha256": "14ff49e1ddb84dd10c7a48930c60afcb1db0d6c0b5e193cadaaa9edc920e7832"
+        }
+      }
+    },
+    {
+      "position": 541,
+      "stage": 4,
+      "family": "branching",
+      "board_sha256": "0e1284fa61876eb9849333eb42e2c8d791c83abc16f3c22ee93f6488bf45f3fc",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.184,
+          "control_seconds": 3.744,
+          "evaluation_sha256": "c1d7be99d53463ccfb43f6a6f667b969dc6d46f13d6639475ba4939a60cf6201"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.18,
+          "control_seconds": 3.108,
+          "evaluation_sha256": "0f7e7142cb33a13d70ef9eccd0f2381c705f06823fc7dd78c41cf55c018e4645"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.143,
+          "control_seconds": 4.001,
+          "evaluation_sha256": "1328f226c4a0a6de92aff92dbfcd8872dda4c80008df5513bad49d7b57ab1cee"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.148,
+          "control_seconds": 1.772,
+          "evaluation_sha256": "d8850f512bf5e5a9fbf5073e2c01ed2c06886385cee4d0635edbf11e2730f56b"
+        }
+      }
+    },
+    {
+      "position": 543,
+      "stage": 4,
+      "family": "keyhole",
+      "board_sha256": "4fb2253420e92fae47efa328d28b11d50e4759449707227e3d502a4c8ddacdf9",
+      "results": {
+        "20261113T145635Z-codex-gpt-6.1-sol-a7b244": {
+          "status": "not_solved",
+          "evaluator_status": "invalid_solution",
+          "seconds": 575.268,
+          "control_seconds": 4.113,
+          "evaluation_sha256": "b5e8a00305dec2612f121e05ac42c52942c786a7a45aa30f9a3fc1422fcd5b40"
+        },
+        "20261115T052034Z-claude-claude-opus-5-5-0abb0b": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 550.171,
+          "control_seconds": 3.213,
+          "evaluation_sha256": "b6b09d96cabb93f6e78f46792f5b744eb5d6c3cf1f79a0c1da9c917bc8c6faf1"
+        },
+        "20261119T161849Z-agy-gemini-4-carbon-high-cb1002": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 590.223,
+          "control_seconds": 4.96,
+          "evaluation_sha256": "f91d5934d86a7ad16a97a5fbbf7d5b2450772bba2266c415afad29ec8848ef07"
+        },
+        "20261114T103249Z-claude-claude-opus-5-5-6f243a": {
+          "status": "not_solved",
+          "evaluator_status": "solver_error",
+          "seconds": 540.25,
+          "control_seconds": 1.92,
+          "evaluation_sha256": "488c364d5535d67658145f9c1c698c5bbcf23f7d18c1e7127f90f0749e9cd496"
+        }
+      }
+    }
+  ]
+}

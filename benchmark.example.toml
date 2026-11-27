@@ -1,6 +1,7 @@
 # Copy this file and use exact model IDs supported by your authenticated provider.
 # Each entry starts a separate experiment with fresh model and solver containers.
 [defaults]
+corpus = "v2.0"
 full = false
 level_timeout = 600
 round_timeout = 43200
@@ -26,3 +27,9 @@ model = "google/replace-with-gemini-model-id"
 [[runs]]
 harness = "opencode"
 model = "openrouter/replace-with-provider/model-id"
+
+# Requires a separate benchmark login: python3 benchmark.py login --harness agy
+# [[runs]]
+# harness = "agy"
+# model = "gemini-4-carbon-high"
+# effort = "high"

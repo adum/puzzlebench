@@ -40,13 +40,13 @@
   - `v=2&id=12&x=11&y=11&board=...,...,...&sx=5&sy=5&plim=14&elim=420&solhash=sha256:...`
 - Fields:
   - `v`: format version.
-  - `id`: level id.
+  - `id`: optional legacy level id. In v2.0 the filename defines the position.
   - `x`, `y`: width and height.
   - `board`: comma-separated rows using `.` (empty) and `X` (blocked).
   - `sx`, `sy`: start position (start direction is always North and is not encoded).
   - `plim`: program-length limit for this level.
   - `elim`: execution-step limit for this level.
-  - `solhash`: sha256 hash of the canonical hidden solution text.
+  - `solhash`: optional legacy solution hash, omitted in v2.0. Any valid escape is accepted.
 
 ## Hidden Solution Format (`.solution.json`)
 - Hidden solutions are stored separately from public levels:
@@ -62,6 +62,7 @@
   - `generator`: seed/settings metadata.
 
 ## Public/Private Layout
+- The automated v2.0 benchmark supplies 272 odd-numbered public boards. Only the host evaluator for a full run can access the 272 private even boards. The following layout describes v1.
 - The repo ships with `levels_public/` containing 20 starter odd levels: `1, 3, ..., 39`.
 - Running `./download_full_levels.sh` replaces that starter set with the full odd/public corpus and writes the even/private levels to `levels_secret_even.tar.enc`.
 - `evaluate.py` reads only `levels_public/`.

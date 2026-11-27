@@ -8,21 +8,24 @@ import sys
 import tomllib
 from pathlib import Path
 
-from .evaluation import evaluate, level_set
-from .harnesses import Harness
+from . import agy, campaign
+from .evaluation import evaluate
+from .harnesses import HARNESSES, Harness
 from .runner import (ROOT, STATE, check_inputs, corpus_credentials, docker_for, prepare_full,
-                     resume_experiment, run_experiment, run_lock, summary_markdown)
+                     resume_experiment, run_experiment, run_lock, saved_levels, summary_markdown, verify_corpus)
 from .sandbox import BenchmarkError, CLAUDE_SECCOMP, DEFAULT_IMAGE, Docker, hash_tree
 
 
 def run_options(parser):
-    parser.add_argument("--harness", choices=("codex", "claude", "opencode"), default="codex")
+    parser.add_argument("--harness", choices=HARNESSES, default="codex")
     parser.add_argument("--model", required=True, help="Exact CLI model ID; OpenCode uses provider/model")
     parser.add_argument("--effort", "--reasoning-effort", dest="effort")
     parser.add_argument("--run-id")
     parser.add_argument("--image", default=DEFAULT_IMAGE)
     parser.add_argument("--full", action="store_true", help="Authorize host-owned evaluation including private even levels")
-    parser.add_argument("--end", type=int, help="Last level; default is all installed public levels, or 412 in full mode")
+    parser.add_argument("--corpus", choices=("v2.0", "v2", "v1"),
+                        help="Official board order (default: v2.0); omit when supplying custom inputs")
+    parser.add_argument("--end", type=int, help="Last board position (default: the whole selected corpus)")
     parser.add_argument("--levels-dir", help="Public odd-level directory; copied into the immutable input snapshot")
     parser.add_argument("--timeout", type=float, default=43200, help="Overall active run budget, seconds")
     parser.add_argument("--round-timeout", type=float, default=43200, help="Agent budget per round, including retries (default: 12 hours)")
@@ -40,7 +43,7 @@ def run_options(parser):
 
 
 def credential_options(parser):
-    parser.add_argument("--auth-file", help="Codex auth.json only; defaults to existing Codex login")
+    parser.add_argument("--auth-file", help="Codex auth.json or Antigravity's portable Linux OAuth token")
     parser.add_argument("--secret-archive", help="Encrypted even-level archive; stays on the host")
     parser.add_argument("--password-env", default="PUZZLEBENCH_FULL_PASSWORD")
 
@@ -61,12 +64,16 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("summary", help="Compare saved trials; public-only scores are labeled separately")
     doctor = commands.add_parser("doctor", help="Check Docker/image availability without invoking an LLM")
     doctor.add_argument("--image", default=DEFAULT_IMAGE)
-    doctor.add_argument("--harness", choices=("codex", "claude", "opencode"),
+    doctor.add_argument("--harness", choices=HARNESSES,
                         help="Also check the CLI and its sandbox without credentials or a model call")
     build = commands.add_parser("build", help="Build the pinned harness image (downloads dependencies)")
     build.add_argument("--image", default=DEFAULT_IMAGE)
-    prepare = commands.add_parser("prepare", help="Install the full corpus with an automatically generated local password")
-    prepare.add_argument("--full", action="store_true", required=True)
+    login = commands.add_parser("login", help="Sign in to a benchmark-only Antigravity profile")
+    login.add_argument("--harness", choices=("agy",), required=True)
+    login.add_argument("--image", default=DEFAULT_IMAGE)
+    prepare = commands.add_parser("prepare", help="Install public boards; --full also prepares private packs")
+    prepare.add_argument("--corpus", choices=("v2.0", "v2", "v1"), default="v2.0")
+    prepare.add_argument("--full", action="store_true")
     evaluation = commands.add_parser("evaluate", help="Re-evaluate a saved best solver under its original conditions")
     evaluation.add_argument("run_dir")
     evaluation.add_argument("--full", action="store_true", help="Required to re-evaluate a full/private run")
@@ -75,6 +82,9 @@ def parser() -> argparse.ArgumentParser:
 
 
 def validate(args) -> None:
+    campaign.version_for(args)
+    if args.harness == "agy":
+        agy.validate(args.model, args.effort)
     for name in ("timeout", "round_timeout", "level_timeout", "evaluation_timeout", "max_rounds",
                  "stale_limit", "max_attempts", "cpus", "workspace_mb"):
         if not math.isfinite(getattr(args, name)) or getattr(args, name) <= 0:
@@ -122,7 +132,7 @@ def batch_runs(path: Path) -> int:
             if key in {"auth_file", "secret_archive", "levels_dir"}:
                 value = str((path.parent / value).expanduser().resolve())
             setattr(args, key, value)
-        if args.harness not in {"codex", "claude", "opencode"}:
+        if args.harness not in HARNESSES:
             raise BenchmarkError("Unknown harness in matrix")
         validate(args)
         trials.append(args)
@@ -160,7 +170,9 @@ def _evaluate_saved(args, run: Path) -> int:
     if hash_tree(source) != record["best_workspace_sha256"]:
         raise BenchmarkError("Saved solver snapshot changed; refusing to attribute its score to the original run")
     archive, password = corpus_credentials(c["full"], args.secret_archive, args.password_env)
-    with level_set(run / "inputs", end=c["end"], full=c["full"], secret_archive=archive, password=password) as levels:
+    extra = campaign.overlay_key(STATE) if c["full"] and c.get("corpus_version") == campaign.spec.VERSION else None
+    with saved_levels(run, record, archive, password, extra) as levels:
+        verify_corpus(record, levels)
         with docker_for(c) as docker:
             docker.preflight()
             import uuid
@@ -169,6 +181,23 @@ def _evaluate_saved(args, run: Path) -> int:
                                timeout=c["level_timeout"], total_timeout=c["evaluation_timeout"])
     print(json.dumps({key: value for key, value in summary.items() if key != "levels"}, indent=2))
     return 0 if summary["complete"] else 1
+
+
+def prepare_corpus(version, full):
+    legacy = STATE / "data" / "robotsrevenge"
+    edition = None if version == "v1" else campaign.Edition()
+    if edition and full:
+        campaign.overlay_key(STATE)
+        edition.private_overlay()
+    if full:
+        if not (legacy / "levels_secret_even.tar.enc").is_file():
+            prepare_full()
+        corpus_credentials(True, None, "PUZZLEBENCH_FULL_PASSWORD")
+    if edition:
+        return edition.install_public(STATE)
+    if not (legacy / "levels_public").is_dir():
+        raise BenchmarkError("To install all v1 public boards, use prepare --corpus v1 --full")
+    return legacy
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -199,10 +228,21 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "summary":
             print(summary_markdown(), end="")
             return 0
+        if args.command == "login":
+            agy.login(args.image, STATE / "auth" / "antigravity-oauth-token")
+            return 0
         if args.command == "doctor":
             with Docker(args.image) as docker:
                 result = docker.preflight()
-                if args.harness:
+                if args.harness == "agy":
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as folder:
+                        path = Path(folder).resolve()
+                        name, _ = docker.agy_pair(path, path, hosts=[], environment=agy.ENV)
+                        agy.preflight(docker, name)
+                        result.update(harness="agy", version=docker.call("exec", name, "agy", "--version"),
+                                      sandbox_preflight="offline solver passed")
+                elif args.harness:
                     name = docker.prefix + "-doctor"
                     command = docker.base(name)
                     if args.harness == "claude":
@@ -218,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
             return subprocess.call(["docker", "build", "-f", str(ROOT / "containers/benchmark.Dockerfile"),
                                     "-t", args.image, str(ROOT)])
         if args.command == "prepare":
-            print(prepare_full())
+            print(prepare_corpus(args.corpus, args.full))
             return 0
         if args.command == "evaluate":
             return evaluate_saved(args)

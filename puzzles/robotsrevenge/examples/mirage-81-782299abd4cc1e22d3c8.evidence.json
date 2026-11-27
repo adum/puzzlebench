@@ -1,0 +1,100 @@
+{
+  "qualification": {
+    "level_hash": "sha256:782299abd4cc1e22d3c811d8d73c327172582dfec4615d8336a7c9e272eab224",
+    "certificate_slots": 44,
+    "certificate_steps": 827,
+    "scope": "named checks and supplied solver snapshots only",
+    "features": {
+      "shortest_moves": 292,
+      "witness_moves": 406,
+      "loop_erased_moves": 390,
+      "cells_far_from_all_shortest_paths": 376,
+      "pivotal_certificate_sensors": 9,
+      "min_open_turns": 49
+    },
+    "replays": [
+      {
+        "run": "20261113T145635Z-codex-gpt-6.1-sol-a7b244",
+        "model": "gpt-6.1-sol",
+        "effort": "high",
+        "status": "not_solved",
+        "runner_status": "invalid_solution",
+        "seconds": 575.206
+      },
+      {
+        "run": "20261115T052034Z-claude-claude-opus-5-5-0abb0b",
+        "model": "claude-opus-5-5",
+        "effort": "xhigh",
+        "status": "not_solved",
+        "runner_status": "solver_error",
+        "seconds": 550.173
+      },
+      {
+        "run": "20261119T161849Z-agy-gemini-4-carbon-high-cb1002",
+        "model": "gemini-4-carbon-high",
+        "effort": "high",
+        "status": "not_solved",
+        "runner_status": "solver_error",
+        "seconds": 590.136
+      }
+    ],
+    "status": "survived"
+  },
+  "source_aware_audit": {
+    "level_hash": "sha256:782299abd4cc1e22d3c811d8d73c327172582dfec4615d8336a7c9e272eab224",
+    "restart": 177,
+    "draws": 250000,
+    "route_samples": 96,
+    "wall_turn_can_reach_exit": false,
+    "min_open_turns": 49,
+    "macro_min_slots": 488,
+    "crawler_or_hybrid_escape": false,
+    "dictionary_size": 403,
+    "dictionary_hash": "sha256:83ff64cad40aecc6201145393abe3ed0b89b387643d1cf9d2a7fe3de718ac473",
+    "node_budget": 200000,
+    "tested": {
+      "registered_dictionary": 403,
+      "macro_dfs_plain_0": 1,
+      "macro_dfs_plain_1": 1,
+      "macro_dfs_plain_2": 1,
+      "wall_followers": 512,
+      "clockwork": 14400,
+      "flat_prior": 62500,
+      "guided_mutation": 125000,
+      "mirage_prior": 62500
+    },
+    "work": {
+      "source_route_guesses": 96,
+      "board_inference_nodes": 200000,
+      "hinted_inference_nodes": 47241,
+      "hinted_moves_matched": 33,
+      "hinted_moves": 406
+    },
+    "escape": null
+  },
+  "replay_conditions": {
+    "level_seconds": 600,
+    "cpus": 4,
+    "memory": "4g",
+    "public_control": {
+      "gpt-6.1-sol": {
+        "level": 1,
+        "status": "pass",
+        "reason": null,
+        "elapsed_seconds": 3.812
+      },
+      "claude-opus-5-5": {
+        "level": 1,
+        "status": "pass",
+        "reason": null,
+        "elapsed_seconds": 3.047
+      },
+      "gemini-4-carbon-high": {
+        "level": 1,
+        "status": "pass",
+        "reason": null,
+        "elapsed_seconds": 3.979
+      }
+    }
+  }
+}

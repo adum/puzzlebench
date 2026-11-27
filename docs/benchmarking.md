@@ -23,7 +23,7 @@ python3 benchmark.py doctor --harness claude
 
 This checks the installed CLI and bubblewrap runtime without credentials or a model call.
 
-The image includes pinned Codex, Claude Code, and OpenCode versions, plus Python,
+The image includes pinned Codex, Claude Code, OpenCode, and Antigravity versions, plus Python,
 Node, g++, make, git, and curl. To change a harness version deliberately:
 
 ```sh
@@ -52,6 +52,7 @@ python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID --effort high
 python3 benchmark.py run --harness claude --model ANTHROPIC_MODEL_ID
 python3 benchmark.py run --harness opencode --model google/GEMINI_MODEL_ID
 python3 benchmark.py run --harness opencode --model openrouter/PROVIDER/MODEL_ID
+python3 benchmark.py run --harness agy --model gemini-4-carbon-high --effort high --full
 ```
 
 Codex uses `OPENAI_API_KEY`, or copies only the existing Codex login's `auth.json`
@@ -65,6 +66,42 @@ selected provider's environment credential: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY
 therefore be tested through OpenCode without a separate Gemini or Grok CLI adapter.
 Unknown providers are rejected until an explicit endpoint allowlist is added.
 
+### Antigravity account login
+
+```sh
+python3 benchmark.py doctor --harness agy
+python3 benchmark.py login --harness agy
+```
+
+`doctor` checks CLI discovery and runs a command in the offline solver without
+sending a model request. The Linux CLI is pinned to 1.5.12; the image build
+verifies Google's release checksum for arm64 or amd64.
+
+Run `login` once in your own terminal. Follow Google's sign-in prompts, then exit
+Antigravity without sending an agent prompt. Only the benchmark login is saved,
+under the Git-ignored `.puzzlebench/auth/` directory. The runner does not read
+macOS Keychain, import your normal CLI profile, or silently bill a Gemini API key.
+An existing portable Antigravity Linux login may be selected with `--auth-file`.
+See [Google's CLI sign-in instructions](https://antigravity.google/docs/install/).
+
+At the start of a run, the controller also needs HTTPS access to `www.googleapis.com`
+to check the signed-in account. If an older run stopped with `Eligibility check failed`
+and `Destination unavailable or denied` for `/oauth2/v2/userinfo`, start a fresh run:
+resume rejects changes to the saved network policy. No image rebuild or new login is needed for this fix.
+
+Use an exact slug from `agy models`; the runner also checks it against the
+benchmark account before inference. When the slug includes effort, any supplied
+`--effort` must match. A missing or failed streamed result is not a score.
+
+Unlike the other harnesses, Antigravity runs in two containers. Its controller
+has the account login but no puzzle mounts or submitted files. It can call one
+tool, `puzzlebench/shell`, over a per-attempt Unix socket. The shell runs as a
+non-root user in a separate container with **no network**, public inputs mounted
+read-only, and no controller credentials. Only that worker's workspace is
+exported for evaluation. Both retain Docker's default security policy; neither
+requires the Claude-specific permissions. The distinct tool interface is recorded
+in each run for comparison with native CLI harnesses.
+
 The harness receives only its selected provider's credentials. These credentials
 must be available to the CLI inside the agent container; that container is not a
 secret vault against a malicious agent. Use a dedicated, revocable benchmark
@@ -74,19 +111,22 @@ can expire or be refreshed only inside its temporary container.
 
 ## Public and full evaluation
 
-By default, a run evaluates the checked-in 20 odd-numbered public levels, 1 through
-39. It is explicitly labeled `public-only` and is not comparable to a full score.
-To install the full corpus:
+The default [v2.0 campaign](robotsrevenge-v2.md) contains 544 boards. A default
+run needs no download: it snapshots the 272 public odds, 1 to 543, from the
+versioned pack. This is labeled `public-only`, not a full score. To unpack
+them for inspection, use `python3 benchmark.py prepare`.
+
+To prepare a full run, obtain `PUZZLEBENCH_V2_PASSWORD` from the corpus owner
+through a private channel (or use the owner's previously installed key), then:
 
 ```sh
 python3 benchmark.py prepare --full
 ```
 
-This invokes the existing level downloader in `.puzzlebench/data/robotsrevenge/`,
-generates an encryption password, and stores it locally with owner-only permissions.
-It installs 206 public odd levels and an encrypted archive of 206 private even levels.
-The data directory and password are excluded from Git and are never mounted in the
-agent container. The existing checked-in starter levels are not replaced.
+The runner reuses the original encrypted base in `.puzzlebench/data/robotsrevenge/`
+or installs it using the legacy downloader and a generated local base password.
+It checks the ciphertext of the separate v2 overlay. Preparation does not
+decrypt either installed pack. Keep both keys outside Git and model workspaces.
 
 Then authorize a full benchmark explicitly:
 
@@ -94,7 +134,9 @@ Then authorize a full benchmark explicitly:
 python3 benchmark.py run --harness codex --model OPENAI_MODEL_ID --full
 ```
 
-For an existing encrypted pack, supply `--levels-dir PATH_TO_PUBLIC_LEVELS`,
+For a v1 comparison add `--corpus v1` to `prepare --full` and `run`; old
+saved runs resume and re-evaluate on their original inputs. Do not compare the
+position of a v1 failure to a v2 score. For a **custom** pack, omit `--corpus` and supply `--levels-dir PATH_TO_PUBLIC_LEVELS`,
 `--secret-archive PATH`, and set `PUZZLEBENCH_FULL_PASSWORD`. An alternative variable
 name can be selected with `--password-env NAME`; passwords are never CLI arguments.
 
@@ -137,7 +179,11 @@ tool calls are not treated as stalled by default; an optional idle cutoff can be
 enabled explicitly without removing the overall and per-round wall-clock limits.
 
 Recognized transient service/transport errors receive exponential backoff (15,
-30, 60, 120 seconds). Authentication, unsupported models/effort, and other permanent
+30, 60, 120 seconds). If Antigravity's inference request ends with `EOF`, the next
+attempt starts a fresh CLI session with the solver files exported from the failed
+attempt. The failed attempt itself is not scored. Use `resume`, not a new `run`,
+to recover these files if an older runner stopped on this error.
+Authentication, unsupported models/effort, and other permanent
 errors stop immediately. Structured error events are checked even when a CLI exits
 zero. Recognized response-length boundaries submit the partial workspace for
 evaluation and continue in the next round. Timeouts and excessive output stop the

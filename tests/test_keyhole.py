@@ -259,7 +259,9 @@ class KeyholeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "rooms"):
             gen.generate(1, 33, rooms=1)
         with self.assertRaisesRegex(ValueError, "slots"):
-            gen.generate(1, 33, slots=49)
+            gen.generate(1, 33, slots=core.MAX_PROGRAM_LIMIT + 1)
+        with self.assertRaisesRegex(ValueError, "slack"):
+            gen.generate(1, 33, slack=-0.1)
         with self.assertRaisesRegex(ValueError, "max_attempts"):
             gen.generate(1, 33, max_attempts=0)
 

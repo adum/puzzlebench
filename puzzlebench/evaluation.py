@@ -25,32 +25,45 @@ def load_core(public: Path):
     return module
 
 
+def unpack_even(secret_archive: Path | None, password: str | None, directory: Path) -> dict[int, Path]:
+    if not secret_archive or not secret_archive.is_file() or not password:
+        raise BenchmarkError("Full evaluation needs an encrypted archive and its password; run prepare --full first")
+    directory.mkdir(mode=0o700)
+    target = directory / "input.tar"
+    result = subprocess.run(
+        ["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-salt",
+         "-pass", "stdin", "-in", str(secret_archive), "-out", str(target)],
+        input=password + "\n", text=True, capture_output=True, timeout=60, check=False)
+    if result.returncode:
+        raise BenchmarkError("Could not decrypt private corpus; check the password and archive")
+    files = directory / "files"
+    files.mkdir(mode=0o700)
+    try:
+        with tarfile.open(target) as archive:
+            extract_files(archive, files, ignore_appledouble=True)
+    except tarfile.TarError as exc:
+        raise BenchmarkError("Invalid private level archive") from exc
+    target.unlink()
+    levels = {}
+    for p in files.rglob("*"):
+        if p.is_file():
+            if p.suffix != ".level" or not p.stem.isdigit() or int(p.stem) < 2 or int(p.stem) % 2:
+                raise BenchmarkError("Private corpus must contain only even-numbered .level files")
+            n = int(p.stem)
+            if n in levels:
+                raise BenchmarkError(f"Duplicate level number: {n}")
+            levels[n] = p
+    return levels
+
+
 @contextmanager
 def level_set(public: Path, *, end: int | None = None, full: bool = False,
-              secret_archive: Path | None = None, password: str | None = None):
+              secret_archive: Path | None = None, password: str | None = None,
+              legacy_full_end: int | None = 412):
     with tempfile.TemporaryDirectory(prefix="pb-private-") as temporary:
         files = list((public / "levels_public").glob("*.level"))
         if full:
-            if not secret_archive or not secret_archive.is_file() or not password:
-                raise BenchmarkError("Full evaluation needs an encrypted archive and its password; run prepare --full first")
-            target = Path(temporary) / "even.tar"
-            result = subprocess.run(
-                ["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-salt",
-                 "-pass", "stdin", "-in", str(secret_archive), "-out", str(target)],
-                input=password + "\n", text=True, capture_output=True, timeout=60, check=False,
-            )
-            if result.returncode:
-                raise BenchmarkError("Could not decrypt private corpus; check the password and archive")
-            private = Path(temporary) / "even"
-            private.mkdir(mode=0o700)
-            with tarfile.open(target) as archive:
-                extract_files(archive, private, ignore_appledouble=True)
-            for path in private.rglob("*"):
-                if path.is_file():
-                    if path.suffix != ".level" or not path.stem.isdigit() or int(path.stem) % 2:
-                        raise BenchmarkError("Private corpus must contain only even-numbered .level files")
-                    files.append(path)
-            target.unlink()
+            files.extend(unpack_even(secret_archive, password, Path(temporary) / "even").values())
         by_number = {}
         for path in files:
             if not path.stem.isdigit() or int(path.stem) < 1:
@@ -63,7 +76,7 @@ def level_set(public: Path, *, end: int | None = None, full: bool = False,
             by_number[number] = path
         if not by_number:
             raise BenchmarkError("No public levels installed")
-        last = end if end is not None else (412 if full else max(by_number))
+        last = end if end is not None else (legacy_full_end if full and legacy_full_end else max(by_number))
         expected = list(range(1, last + 1, 1 if full else 2))
         missing = [n for n in expected if n not in by_number]
         if missing:

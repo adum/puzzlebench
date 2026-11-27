@@ -1,6 +1,9 @@
 **
 !containers/
 !containers/benchmark.Dockerfile
+!containers/agy/
+!containers/agy/*.json
+!containers/agy/*.py
 !puzzlebench/
 !puzzlebench/proxy.py
 !puzzlebench/bwrap.py

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "puzzlebench": {
+      "command": "/usr/bin/socat",
+      "args": ["STDIO", "UNIX-CONNECT:/opt/puzzlebench/ipc/worker.sock"],
+      "enabledTools": ["shell"],
+      "timeoutSeconds": 660
+    }
+  }
+}

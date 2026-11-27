@@ -15,6 +15,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
+from . import agy, campaign
 from .evaluation import evaluate, level_set
 from .harnesses import Harness, PROVIDERS, auth_secrets, claude_settings, failure_detail, failure_kind, usage_from_events
 from .process import run_process
@@ -39,13 +40,16 @@ def write_json(path: Path, value) -> None:
     temporary.replace(path)
 
 
-def snapshot_public(destination: Path, levels_dir: Path | None = None) -> dict[str, str]:
+def snapshot_public(destination: Path, levels_dir: Path | None = None, *, edition=None) -> dict[str, str]:
     destination.mkdir(parents=True, exist_ok=False)
     for name in PUBLIC_FILES:
         source = PUZZLE / name
         if source.is_symlink():
             raise BenchmarkError("Benchmark source may not be a symlink")
         shutil.copy2(source, destination / name)
+    if edition is not None:
+        edition.public_files(destination / "levels_public")
+        return hash_tree(destination)
     levels = levels_dir or PUZZLE / "levels_public"
     (destination / "levels_public").mkdir()
     for level in sorted(levels.glob("*.level")):
@@ -103,6 +107,7 @@ def status(run: Path, record: dict, *, emit: bool = True, **changes) -> None:
     record.update(changes, updated_at=now())
     write_json(run / "run.json", record)
     lines = [f"Run: {record['id']}", f"Model: {record['harness']} / {record['model']}",
+             f"Corpus: {record['conditions'].get('corpus_version', 'legacy (unversioned)')}",
              f"Phase: {record['phase']}", f"Round: {record.get('round', 0)}",
              f"Best: {record.get('best_score', 0)}", f"Last: {record.get('last_score')}",
              f"No progress: {record.get('stale_count', 0)}/{record['conditions']['stale_limit']}",
@@ -126,6 +131,9 @@ def check_inputs(run: Path, record: dict) -> None:
 
 def agent_policy(run: Path, record: dict) -> Path | None:
     policy = record["conditions"].get("agent_seccomp")
+    if record["harness"] == "agy" and (record["conditions"].get("agy_settings") != agy.SETTINGS
+                                       or record["conditions"].get("inference_hosts") != agy.HOSTS):
+        raise BenchmarkError("Saved Antigravity tool or network policy differs from this runner; start a fresh run")
     if record["harness"] != "claude":
         if policy:
             raise BenchmarkError("The scoped Claude policy may only be used for the Claude harness")
@@ -154,8 +162,8 @@ def run_lock(run: Path):
 
 
 def summary_markdown() -> str:
-    lines = ["| Run | Harness | Model | Effort | Mode | Range | Best | Rounds | Stop |",
-             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    lines = ["| Run | Harness | Model | Effort | Corpus | Mode | Range | Best | Rounds | Stop |",
+             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for path in sorted((STATE / "runs").glob("*/run.json")):
         record = json.loads(path.read_text())
         mode = "full" if record["conditions"]["full"] else "public-only"
@@ -164,7 +172,8 @@ def summary_markdown() -> str:
         last = max((int(n) for n in record.get("corpus_sha256", {})), default=record["conditions"]["end"])
         level_range = f"1..{last}" if last else "auto"
         cells = [record["id"], record["harness"], record["model"], record.get("effort") or "default",
-                 mode, level_range, score, str(len(record["rounds"])), record.get("stop_reason", record["phase"])]
+                 record["conditions"].get("corpus_version", "legacy"), mode, level_range, score,
+                 str(len(record["rounds"])), record.get("stop_reason", record["phase"])]
         lines.append("| " + " | ".join(str(s).replace("|", "\\|").replace("\n", " ") for s in cells) + " |")
     return "\n".join(lines) + "\n"
 
@@ -180,18 +189,33 @@ def default_auth_file() -> Path | None:
     return path if path.is_file() else None
 
 
+def harness_auth(harness: Harness, explicit: str | None) -> Path | None:
+    path = Path(explicit).expanduser().resolve() if explicit else None
+    if harness.name == "agy":
+        path = path or (STATE / "auth" / "antigravity-oauth-token")
+        if not path.is_file():
+            raise BenchmarkError("No benchmark Antigravity login. Run python3 benchmark.py login --harness agy "
+                                 "or use --auth-file with a portable Antigravity login")
+        return path
+    return (path or default_auth_file()) if harness.name == "codex" else None
+
+
 def run_experiment(args) -> Path:
+    version = campaign.version_for(args)
+    edition = campaign.Edition() if version == campaign.spec.VERSION else None
+    if edition and args.end is not None and not 1 <= args.end <= edition.count:
+        raise BenchmarkError(f"--end must be within the {edition.count}-level campaign")
     harness = Harness(args.harness, args.model, args.effort)
     credentials = harness.credentials()
-    auth_file = Path(args.auth_file).expanduser().resolve() if args.auth_file else default_auth_file()
+    auth_file = harness_auth(harness, args.auth_file)
     if harness.name == "codex" and not credentials and not auth_file:
         raise BenchmarkError("Authenticate Codex or set OPENAI_API_KEY before running")
-    if harness.name != "codex" and not credentials:
+    if harness.name not in {"codex", "agy"} and not credentials:
         raise BenchmarkError(f"Set one of: {', '.join(PROVIDERS[harness.provider][1])}")
     with Docker(args.image, cpus=args.cpus, memory=args.memory, workspace_mb=args.workspace_mb) as docker:
         image = docker.preflight()
     conditions = {
-        "puzzle": "robotsrevenge", "full": args.full, "end": args.end,
+        "puzzle": "robotsrevenge", "corpus_version": version, "full": args.full, "end": args.end,
         "level_timeout": args.level_timeout, "evaluation_timeout": args.evaluation_timeout,
         "timeout": args.timeout, "round_timeout": args.round_timeout,
         "idle_timeout": args.idle_timeout, "max_rounds": args.max_rounds,
@@ -200,6 +224,8 @@ def run_experiment(args) -> Path:
         "workspace_mb": args.workspace_mb, "image": args.image, "image_id": image["id"],
         "start": 1, "feedback": "score-only", "network": "provider-allowlist",
     }
+    if edition:
+        conditions["corpus_manifest_sha256"] = edition.digest
     slug = re.sub(r"[^a-zA-Z0-9_.-]+", "-", f"{args.harness}-{args.model}").strip("-.")[:90]
     run_id = args.run_id or dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + slug + "-" + uuid.uuid4().hex[:6]
     if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}", run_id):
@@ -209,13 +235,15 @@ def run_experiment(args) -> Path:
     installed = STATE / "data" / "robotsrevenge" / "levels_public"
     source = Path(args.levels_dir).resolve() if args.levels_dir else (installed if installed.is_dir() else None)
     try:
-        inputs = snapshot_public(run / "inputs", source)
+        inputs = snapshot_public(run / "inputs", source, edition=edition) if edition else snapshot_public(run / "inputs", source)
         seed_workspace(run / "seed")
         if harness.name == "claude":
             policy = run / "claude-seccomp.json"
             shutil.copy2(CLAUDE_SECCOMP, policy)
             conditions["agent_seccomp"] = {"path": policy.name, "sha256": hashlib.sha256(policy.read_bytes()).hexdigest()}
             conditions["claude_settings"] = claude_settings()
+        if harness.name == "agy":
+            conditions.update(agy_settings=agy.SETTINGS, solver_tools="offline-mcp-shell", inference_hosts=agy.HOSTS)
         source_commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
                                        capture_output=True, text=True, check=False).stdout.strip()
         record = {
@@ -252,6 +280,28 @@ def corpus_credentials(full: bool, secret_archive: str | None, password_env: str
     return path, password
 
 
+def saved_levels(run, record, archive, password, extra_password=None):
+    c = record["conditions"]
+    version = c.get("corpus_version")
+    if version == campaign.spec.VERSION:
+        if not c.get("corpus_manifest_sha256"):
+            raise BenchmarkError("Saved campaign is missing its manifest checksum")
+        edition = campaign.Edition(expected_hash=c["corpus_manifest_sha256"])
+        return edition.levels(run / "inputs", full=c["full"], end=c["end"], archive=archive,
+                              password=password, extra_password=extra_password)
+    if version not in (None, "v1", "custom"):
+        raise BenchmarkError("Unknown saved corpus version")
+    return level_set(run / "inputs", end=c["end"], full=c["full"], secret_archive=archive,
+                     password=password, legacy_full_end=None if version == "custom" else 412)
+
+
+def verify_corpus(record, levels):
+    hashes = {str(n): hashlib.sha256(p.read_bytes()).hexdigest() for n,p in levels}
+    if record.get("corpus_sha256", hashes) != hashes:
+        raise BenchmarkError("Corpus changed since this run was started")
+    return hashes
+
+
 def execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Path | None,
                    secret_archive: str | None, password_env: str) -> None:
     with run_lock(run):
@@ -274,19 +324,23 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
     try:
         status(run, record, phase="preparing", agent_elapsed_seconds=0, agent_output_bytes=0)
         archive, password = corpus_credentials(c["full"], secret_archive, password_env)
-        secrets = tuple(harness.credentials().values()) + ((password,) if password else ())
+        extra = campaign.overlay_key(STATE) if c["full"] and c.get("corpus_version") == campaign.spec.VERSION else None
+        secrets = tuple(harness.credentials().values()) + tuple(p for p in (password, extra) if p)
         if harness.name == "codex" and not harness.credentials():
             secrets += auth_secrets(auth_file)
+        if harness.name == "agy":
+            raw = auth_file.read_text().strip()
+            secrets += (raw,)
+            try:
+                secrets += auth_secrets(auth_file)
+            except ValueError:
+                pass  # Some CLI versions use an opaque portable token.
         check_inputs(run, record)
         seccomp_profile = agent_policy(run, record)
         # Validate the complete range before invoking a paid model. Private files
         # live only in this host-owned context and are never container mounts.
-        with level_set(run / "inputs", end=c["end"], full=c["full"],
-                       secret_archive=archive, password=password) as levels:
-            corpus_hashes = {str(n): hashlib.sha256(p.read_bytes()).hexdigest() for n, p in levels}
-            if record.get("corpus_sha256", corpus_hashes) != corpus_hashes:
-                raise BenchmarkError("Corpus changed since this run was started")
-            record["corpus_sha256"] = corpus_hashes
+        with saved_levels(run, record, archive, password, extra) as levels:
+            record["corpus_sha256"] = verify_corpus(record, levels)
             for number in range(len(record["rounds"]) + 1, c["max_rounds"] + 1):
                 if time.monotonic() >= deadline:
                     stop_reason = "time_budget"
@@ -303,6 +357,11 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                 prompt = compose_prompt(round_number=number, best=record["best_score"], last=record["last_score"],
                                         stale=record["stale_count"], stale_limit=c["stale_limit"],
                                         level_timeout=c["level_timeout"], full=c["full"])
+                if harness.name == "agy":
+                    prompt += ('\nUse call_mcp_tool for all file access and commands: ServerName="puzzlebench", '
+                               'ToolName="shell", Arguments={"command":"...", "timeout":120}. It runs in '
+                               '/workspace in the offline solver container. Use shell heredocs to write files. '
+                               'The optional timeout is 1 to 600 seconds. Native tools cannot access the solver.\n')
                 (round_dir / "prompt.md").write_text(prompt)
                 attempts = []
                 failure = None
@@ -315,8 +374,12 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                            agent_activity="starting harness", agent_remaining_seconds=max(0, int(round_deadline - time.monotonic())),
                            agent_quiet_seconds=0, agent_tool_elapsed_seconds=None)
                     with docker_for(c) as docker:
-                        agent = docker.agent(run / "inputs", source, hosts=PROVIDERS[harness.provider][0],
-                                             environment=harness.environment(), seccomp_profile=seccomp_profile)
+                        if harness.name == "agy":
+                            agent, worker = docker.agy_pair(run / "inputs", source, hosts=c["inference_hosts"],
+                                                           environment=harness.environment())
+                        else:
+                            agent = worker = docker.agent(run / "inputs", source, hosts=PROVIDERS[harness.provider][0],
+                                                         environment=harness.environment(), seccomp_profile=seccomp_profile)
                         harness.preflight(docker, agent)
                         harness.authenticate(docker, agent, auth_file)
                         version = docker.call("exec", agent, harness.name if harness.name != "claude" else "claude",
@@ -339,15 +402,20 @@ def _execute_rounds(run: Path, record: dict, harness: Harness, *, auth_file: Pat
                             )
                         text = (attempt_dir / "events.jsonl").read_text(errors="replace")
                         stderr = (attempt_dir / "stderr.txt").read_text(errors="replace")
-                        failure = result.stop or failure_kind(text, stderr, result.returncode)
-                        detail = failure_detail(text, stderr) if failure else None
+                        if harness.name == "agy":
+                            failure, detail, usage = agy.outcome(text, stderr, result.returncode, model=harness.model)
+                        else:
+                            failure = failure_kind(text, stderr, result.returncode)
+                            detail = failure_detail(text, stderr) if failure or result.stop else None
+                            usage = usage_from_events(text)
+                        failure = result.stop or failure
                         attempts.append({"attempt": attempt, **dataclasses.asdict(result), "failure": failure,
                                          "failure_detail": detail,
-                                         "usage": usage_from_events(text),
+                                         "usage": usage,
                                          "command": ["<round prompt>" if value == prompt else value for value in command]})
                         write_json(attempt_dir / "result.json", attempts[-1])
                         # Export terminates helpers before reading the workspace.
-                        hashes = docker.export(agent, attempt_dir / "workspace")
+                        hashes = docker.export(worker, attempt_dir / "workspace")
                         source = attempt_dir / "workspace"
                         record["latest_workspace"] = source.relative_to(run).as_posix()
                         write_json(attempt_dir / "workspace-sha256.json", hashes)
@@ -450,7 +518,7 @@ def _resume_experiment(args, run: Path) -> Path:
     harness = Harness(record["harness"], record["model"], record["effort"])
     with docker_for(record["conditions"]) as docker:
         docker.preflight()
-    auth = Path(args.auth_file).expanduser().resolve() if args.auth_file else default_auth_file()
+    auth = harness_auth(harness, args.auth_file)
     if record["phase"] != "stopped" and record.get("active_started_at"):
         # A forced kill cannot checkpoint elapsed time. Charge the elapsed wall
         # time conservatively rather than resetting the original run budget.

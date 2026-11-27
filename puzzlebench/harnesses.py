@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import agy
 from .sandbox import BenchmarkError, Docker
 
 
@@ -21,6 +22,7 @@ PROVIDERS = {
 }
 
 CLAUDE_MODEL_MINIMUMS = {"claude-opus-5-5": (2, 1, 280)}
+HARNESSES = ("codex", "claude", "opencode", "agy")
 
 
 def claude_settings() -> dict:
@@ -48,7 +50,7 @@ def auth_secrets(path: Path | None) -> tuple[str, ...]:
     def visit(value):
         if isinstance(value, dict):
             for key, item in value.items():
-                if key.lower() in {"access_token", "refresh_token", "id_token", "api_key", "openai_api_key"} and isinstance(item, str):
+                if key.lower().replace("_", "") in {"accesstoken", "refreshtoken", "idtoken", "apikey", "openaiapikey", "token"} and isinstance(item, str):
                     found.append(item)
                 elif isinstance(item, (dict, list)):
                     visit(item)
@@ -67,6 +69,9 @@ class Harness:
     effort: str | None = None
 
     def preflight(self, docker: Docker, container: str) -> None:
+        if self.name == "agy":
+            agy.preflight(docker, container)
+            return
         if self.name != "claude":
             return
         try:
@@ -90,17 +95,23 @@ class Harness:
             return "openai"
         if self.name == "claude":
             return "anthropic"
+        if self.name == "agy":
+            return "antigravity"
         if self.name == "opencode" and "/" in self.model:
             return self.model.split("/", 1)[0]
         raise BenchmarkError("OpenCode requires an exact provider/model identifier")
 
     def credentials(self) -> dict[str, str]:
+        if self.name == "agy":
+            return {}  # Dedicated account login only; never switch billing to a Gemini API key.
         if self.provider not in PROVIDERS:
             raise BenchmarkError(f"No inference allowlist for provider {self.provider!r}; add one explicitly")
         return {name: os.environ[name] for name in PROVIDERS[self.provider][1] if os.environ.get(name)}
 
     def environment(self) -> dict[str, str]:
         env = self.credentials()
+        if self.name == "agy":
+            return dict(agy.ENV)
         if self.name == "claude":
             env.update(CLAUDE_CODE_SUBPROCESS_ENV_SCRUB="1", CLAUDE_CODE_MAX_OUTPUT_TOKENS="128000",
                        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1")
@@ -119,6 +130,8 @@ class Harness:
         return env
 
     def command(self, prompt: str, *, version: str | None = None) -> tuple[list[str], str | None]:
+        if self.name == "agy":
+            return agy.command(self.model, self.effort, prompt, version)
         # Permission bypass flags are used ONLY inside our hardened containers.
         # They are never executed directly on the host or used as isolation.
         if self.name == "codex":
@@ -167,6 +180,9 @@ class Harness:
         return args + [prompt], None
 
     def authenticate(self, docker: Docker, container: str, auth_file: Path | None) -> None:
+        if self.name == "agy":
+            agy.authenticate(docker, container, auth_file, self.model)
+            return
         if self.name != "codex":
             return
         if self.credentials().get("OPENAI_API_KEY"):

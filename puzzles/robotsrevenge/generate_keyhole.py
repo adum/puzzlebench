@@ -473,9 +473,11 @@ def generate(seed, size=65, *, rooms=None, slots=None, slack=0.2, max_attempts=2
     if not 25 <= size <= 200:
         raise ValueError("size must be between 25 and 200")
     side, length = plan_size(size)
-    length = slots or length
-    if not 8 <= length <= 48:
-        raise ValueError("slots must be between 8 and 48")
+    length = length if slots is None else slots
+    if not 8 <= length <= core.MAX_PROGRAM_LIMIT:
+        raise ValueError(f"slots must be between 8 and {core.MAX_PROGRAM_LIMIT}")
+    if not 0 <= slack <= 1:
+        raise ValueError("slack must be between 0 and 1")
     wanted = rooms or max(3, min(100, round(0.5 * side * side)))
     if not 2 <= wanted <= side * side:
         raise ValueError("rooms must be between 2 and the number of rooms on the board")

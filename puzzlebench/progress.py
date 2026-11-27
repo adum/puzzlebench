@@ -84,6 +84,23 @@ class Activity:
             self.message = tool.label + (" failed" if failed else " finished")
 
     def consume(self, event: dict, elapsed: float) -> None:
+        if event.get("event") == "step_update":
+            step = event.get("step_update")
+            if isinstance(step, dict) and step.get("step_type") == "tool":
+                key = "agy:" + str(step.get("step_index"))
+                info = step.get("tool_info")
+                params = info.get("parameters") if isinstance(info, dict) else None
+                label = str(step.get("tool_name", "tool"))
+                if label == "call_mcp_tool" and isinstance(params, dict) and params.get("ServerName") == "puzzlebench":
+                    label, params = "Shell", params.get("Arguments")
+                self.start(key, label, params if isinstance(params, dict) else {}, elapsed)
+                if step.get("state") in {"DONE", "ERROR", "FAILED"}:
+                    self.finish(key, step["state"] != "DONE")
+            return
+        if event.get("event") == "result" and isinstance(event.get("result"), dict):
+            self.tools.clear()
+            self.message = "agent finished" if event["result"].get("status") == "SUCCESS" else "agent failed"
+            return
         kind = event.get("type")
         if not isinstance(kind, str):
             return

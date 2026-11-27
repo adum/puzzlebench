@@ -1,0 +1,169 @@
+{
+  "edition": "ed69fdb0e75184945cf58f42dc6a91e718dc348104d2555569ff888733c7b1dd",
+  "protocol": "puzzlebench.frontier_audit; board only, without a certificate, seed or custom dictionary",
+  "budget": {
+    "restart": 439,
+    "draws": 100000,
+    "route_samples": 64,
+    "conditioned": 100000,
+    "nodes": 120000
+  },
+  "source_sha256": {
+    "audit_branching.py": "ead0e258ceaeec6fba2d422ab3193809334d40fb2b3aff23fa6ed23bb1e8aaad",
+    "branching_routes.py": "87b3795734364b58b239b6417167d0abfac55485964d9f22b4e9462b6333abc5",
+    "branching_programs.py": "7e135d76e3cde3722fcef8dd8b10056fbde973b8f972db81c3124af52d1663ce",
+    "generate_clockwork.py": "9dfb141d8b2506349553c73585b3740bcd66de23bc4a30d4d0bade8f414093d5",
+    "sensejump_core.py": "86f63d7746394924404a48142653f0fbf88b772742cb97b48b68b4f3df8b19ba"
+  },
+  "control": {
+    "board": "clockwork-33-3.level",
+    "sha256": "7a9b725bf45bcaf672c11fb572d877b17e52e21147b8eb10b219a607980afa97",
+    "escape": "clockwork"
+  },
+  "boards": [
+    {
+      "id": "513",
+      "family": "keyhole",
+      "rung": 1,
+      "board_sha256": "139f6fa5777e10520acb29dd508e8eb200616b1d9e5d57bc91af831fe98e2953",
+      "escape": null,
+      "macro_min_slots": 348,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "515",
+      "family": "branching",
+      "rung": 1,
+      "board_sha256": "75a0702198a85d161136902af748cb8ea17c94a222ceb78fe2b66a382dd36f04",
+      "escape": null,
+      "macro_min_slots": 130,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "517",
+      "family": "keyhole",
+      "rung": 1,
+      "board_sha256": "0184d381e83fdedb13e799a602490c6731c57924b68109d31a7db15b1fa493ca",
+      "escape": null,
+      "macro_min_slots": 286,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "519",
+      "family": "branching",
+      "rung": 1,
+      "board_sha256": "aaca24834f3a6267cd0bd5ef612da3f96aaa2638476a4793ab92eee2ff66c405",
+      "escape": null,
+      "macro_min_slots": 128,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "521",
+      "family": "branching",
+      "rung": 2,
+      "board_sha256": "bd4a685f18a988ae5614335db461dfa160a5b6a61010db18f195bd8ccbdd5f28",
+      "escape": null,
+      "macro_min_slots": 165,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "523",
+      "family": "keyhole",
+      "rung": 2,
+      "board_sha256": "1811d13a98f0796189024524cce6f2e7639b28f50e4e4379a0401b72621c3580",
+      "escape": null,
+      "macro_min_slots": 266,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "525",
+      "family": "branching",
+      "rung": 2,
+      "board_sha256": "f817b88843c81d01aeb725392cf23d7e8931d948e726bf42e860f52956a763c2",
+      "escape": null,
+      "macro_min_slots": 163,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "527",
+      "family": "keyhole",
+      "rung": 2,
+      "board_sha256": "0ce0644942d44b58d25af11da7f616b2a89dbc838df56f4595ca0cee9ba33c7e",
+      "escape": null,
+      "macro_min_slots": 278,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "529",
+      "family": "keyhole",
+      "rung": 3,
+      "board_sha256": "9c350b72f3a597a3f2b773dbee0f1e792b1b14fd4cb6e6ba5036de9bf31edf4d",
+      "escape": null,
+      "macro_min_slots": 359,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "531",
+      "family": "branching",
+      "rung": 3,
+      "board_sha256": "7c110cfb9afa04457a7726f9f119078b6d72d35811aec4509cc5947530bec20c",
+      "escape": null,
+      "macro_min_slots": 139,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "533",
+      "family": "keyhole",
+      "rung": 3,
+      "board_sha256": "ffcc09adc1c6bbb3da732dd91ae6ce5f5da776710b44586b352ecf301a85bf5b",
+      "escape": null,
+      "macro_min_slots": 299,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "535",
+      "family": "branching",
+      "rung": 3,
+      "board_sha256": "ec8884c949021e20fd990a6bb917b663f4f6880d939bdae4be6c97fe3ee75a5a",
+      "escape": null,
+      "macro_min_slots": 151,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "537",
+      "family": "branching",
+      "rung": 4,
+      "board_sha256": "ce424e3807d557bcffe3f62312a567b162b1cd9bdfc2bbe9c8b9f60d7c14a831",
+      "escape": null,
+      "macro_min_slots": 163,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "539",
+      "family": "keyhole",
+      "rung": 4,
+      "board_sha256": "a6f7b883e8e7b4ba10f5d575a7e8293df1287ea3d9dfdf9473eb5add4bc902de",
+      "escape": null,
+      "macro_min_slots": 532,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "541",
+      "family": "branching",
+      "rung": 4,
+      "board_sha256": "0e1284fa61876eb9849333eb42e2c8d791c83abc16f3c22ee93f6488bf45f3fc",
+      "escape": null,
+      "macro_min_slots": 136,
+      "wall_turn_can_reach_exit": false
+    },
+    {
+      "id": "543",
+      "family": "keyhole",
+      "rung": 4,
+      "board_sha256": "4fb2253420e92fae47efa328d28b11d50e4759449707227e3d502a4c8ddacdf9",
+      "escape": null,
+      "macro_min_slots": 456,
+      "wall_turn_can_reach_exit": false
+    }
+  ]
+}

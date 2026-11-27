@@ -1,0 +1,8 @@
+{
+  "puzzlebench": {
+    "PreToolUse": [{
+      "matcher": "*",
+      "hooks": [{"type": "command", "command": "/usr/bin/python3 -I /opt/puzzlebench/agy-policy.py", "timeout": 5}]
+    }]
+  }
+}
