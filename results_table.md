@@ -5,7 +5,6 @@
 | runaway | 500 | — | — | — | — | — | — | — | — | 500 | **500** | — | **500** | — | — |
 | modulo | 55 | — | — | — | — | — | — | — | — | 43 | 33 | — | 37 | — | — |
 | [robotsrevenge v2.0 (544)](docs/robotsrevenge-v2.md) | ? | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| robotsrevenge v1 (412, archived) | ? | **412** | **412** | **412** | 337 | — | 133 | — | 337 | — | — | — | — | **412** | — |
 
 <!--
 Model columns: first public model/family release, newest first. Same-day models

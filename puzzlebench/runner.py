@@ -161,10 +161,15 @@ def run_lock(run: Path):
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
-def summary_markdown() -> str:
+def listed_run_files(state: Path, *, include_archived: bool = False) -> list[Path]:
+    return [path for path in (state / "runs").glob("*/run.json")
+            if include_archived or not (path.parent / ".archived").is_file()]
+
+
+def summary_markdown(*, include_archived: bool = False) -> str:
     lines = ["| Run | Harness | Model | Effort | Corpus | Mode | Range | Best | Rounds | Stop |",
              "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-    for path in sorted((STATE / "runs").glob("*/run.json")):
+    for path in sorted(listed_run_files(STATE, include_archived=include_archived)):
         record = json.loads(path.read_text())
         mode = "full" if record["conditions"]["full"] else "public-only"
         # A launch failure is not a measured zero benchmark score.

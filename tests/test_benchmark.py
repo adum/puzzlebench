@@ -23,6 +23,52 @@ SIMPLE_LEVEL = "v=2&id=1&x=1&y=1&board=.&sx=0&sy=0&plim=2&elim=10"
 APPLEDOUBLE = b"\x00\x05\x16\x07\x00\x02\x00\x00" + b"\x00" * 18
 
 
+class SavedRunListingTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.state = Path(tmp.name)
+        self.enterContext(mock.patch.object(runner, "STATE", self.state))
+        self.enterContext(mock.patch.object(cli, "STATE", self.state))
+
+    def trial(self, name, version, *, archived=False, mtime=1):
+        path = self.state / "runs" / name
+        path.mkdir(parents=True)
+        runner.write_json(path / "run.json", {"id": name, "harness": "test", "model": "fixture",
+                          "conditions": {"full": True, "end": 1, "corpus_version": version},
+                          "phase": "stopped", "rounds": [{}], "best_score": 1})
+        os.utime(path / "run.json", (mtime, mtime))
+        (path / "status.md").write_text(name + "\n")
+        if archived:
+            (path / ".archived").touch()
+        return path
+
+    def command(self, *args):
+        with mock.patch.object(sys, "stdout", new_callable=io.StringIO) as out, \
+             mock.patch.object(sys, "stderr", new_callable=io.StringIO) as err:
+            return cli.main(list(args)), out.getvalue(), err.getvalue()
+
+    def test_summary_hides_only_marked_trials_and_can_include_archives(self):
+        self.trial("retired", "v1", archived=True)
+        self.trial("new-v1-comparison", "v1")
+        self.trial("new-v2-result", "v2.0")
+        rc, summary, _ = self.command("summary")
+        self.assertEqual(rc, 0)
+        self.assertNotIn("retired", summary)
+        self.assertIn("new-v1-comparison", summary)
+        self.assertIn("new-v2-result", summary)
+        self.assertEqual(summary, runner.summary_markdown())
+        self.assertIn("retired", self.command("summary", "--include-archived")[1])
+
+    def test_status_ignores_archives_unless_given_their_path(self):
+        saved = self.trial("retired", "v1", archived=True, mtime=100)
+        self.assertEqual(self.command("status"), (1, "", "Error: No unarchived runs\n"))
+        self.assertEqual(self.command("status", str(saved)), (0, "retired\n", ""))
+        self.trial("first", "v2.0", mtime=1)
+        self.trial("latest", "v2.0", mtime=2)
+        self.assertEqual(self.command("status"), (0, "latest\n", ""))
+
+
 class ArchiveTests(unittest.TestCase):
     def unpack(self, members, limit=1000, *, ignore_appledouble=False):
         with tempfile.TemporaryDirectory() as temporary:

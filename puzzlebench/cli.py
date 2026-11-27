@@ -11,7 +11,7 @@ from pathlib import Path
 from . import agy, campaign
 from .evaluation import evaluate
 from .harnesses import HARNESSES, Harness
-from .runner import (ROOT, STATE, check_inputs, corpus_credentials, docker_for, prepare_full,
+from .runner import (ROOT, STATE, check_inputs, corpus_credentials, docker_for, listed_run_files, prepare_full,
                      resume_experiment, run_experiment, run_lock, saved_levels, summary_markdown, verify_corpus)
 from .sandbox import BenchmarkError, CLAUDE_SECCOMP, DEFAULT_IMAGE, Docker, hash_tree
 
@@ -59,9 +59,10 @@ def parser() -> argparse.ArgumentParser:
     credential_options(resume)
     batch = commands.add_parser("batch", help="Run a TOML matrix sequentially, with an independent workspace per trial")
     batch.add_argument("config", help="TOML file with [defaults] and [[runs]]")
-    status = commands.add_parser("status", help="Print saved run status, most recent by default")
+    status = commands.add_parser("status", help="Print saved run status; defaults to the most recent unarchived run")
     status.add_argument("run_dir", nargs="?")
-    commands.add_parser("summary", help="Compare saved trials; public-only scores are labeled separately")
+    summary = commands.add_parser("summary", help="Compare unarchived trials; public-only scores are labeled separately")
+    summary.add_argument("--include-archived", action="store_true", help="Also show archived trials")
     doctor = commands.add_parser("doctor", help="Check Docker/image availability without invoking an LLM")
     doctor.add_argument("--image", default=DEFAULT_IMAGE)
     doctor.add_argument("--harness", choices=HARNESSES,
@@ -219,14 +220,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "batch":
             return batch_runs(Path(args.config).expanduser().resolve())
         if args.command == "status":
-            candidates = sorted((STATE / "runs").glob("*/run.json"), key=lambda p: p.stat().st_mtime)
-            run = Path(args.run_dir).resolve() if args.run_dir else (candidates[-1].parent if candidates else None)
-            if not run:
-                raise BenchmarkError("No saved runs")
+            if args.run_dir:
+                run = Path(args.run_dir).resolve()
+            else:
+                latest = max(listed_run_files(STATE), key=lambda p: p.stat().st_mtime_ns, default=None)
+                if latest is None:
+                    raise BenchmarkError("No unarchived runs")
+                run = latest.parent
             print((run / "status.md").read_text(), end="")
             return 0
         if args.command == "summary":
-            print(summary_markdown(), end="")
+            print(summary_markdown(include_archived=args.include_archived), end="")
             return 0
         if args.command == "login":
             agy.login(args.image, STATE / "auth" / "antigravity-oauth-token")

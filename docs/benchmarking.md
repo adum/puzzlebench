@@ -228,6 +228,12 @@ All outputs go under `.puzzlebench/runs/RUN_ID/`:
 - `.puzzlebench/summary.md`: derived comparison table, with full/public-only modes
   distinguished and failed launches marked `unscored`.
 
+Archived trials are omitted from the summary and from `status` without a run
+directory. To archive a finished trial without changing its saved solver or
+scores, place an empty `.archived` file next to its `run.json`.
+`python3 benchmark.py summary --include-archived` lists all trials. An explicit
+run directory still works for status and replay.
+
 Resume an interrupted or failed run with its original conditions and remaining
 time budget:
 
